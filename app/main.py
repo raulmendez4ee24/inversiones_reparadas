@@ -13,14 +13,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from .core.access import access_items
-from .core.analysis import run_analysis
-from .core.ai_reply import generate_ai_reply
-from .core.meta import validate_messenger, validate_whatsapp
-from .core.models import BusinessInput
-from .core.modules import catalog
-from .core.n8n import provision_workflows
-from .core.storage import (
+from app.core.access import access_items
+from app.core.analysis import run_analysis
+from app.core.ai_reply import generate_ai_reply
+from app.core.meta import validate_messenger, validate_whatsapp
+from app.core.models import BusinessInput
+from app.core.modules import catalog
+from app.core.n8n import provision_workflows
+from app.core.storage import (
     fetch_lead,
     fetch_oauth_token,
     init_db,
