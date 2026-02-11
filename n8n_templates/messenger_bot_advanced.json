@@ -1,0 +1,193 @@
+{
+  "name": "Messenger Bot Avanzado",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "messenger-{{PROJECT_ID}}",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "functionCode": "const entry = $json.entry?.[0];\nconst messaging = entry?.messaging?.[0] || {};\nreturn [{ json: { from: messaging.sender?.id, text: messaging.message?.text || '', raw: $json } }];"
+      },
+      "name": "Parse Messenger",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            { "name": "company_name", "value": "{{COMPANY_NAME}}" },
+            { "name": "business_focus", "value": "{{BUSINESS_FOCUS}}" },
+            { "name": "industry", "value": "{{INDUSTRY}}" },
+            { "name": "goals", "value": "{{GOALS}}" },
+            { "name": "crm_webhook_url", "value": "{{CRM_WEBHOOK_URL}}" },
+            { "name": "calendar_webhook_url", "value": "{{CALENDAR_WEBHOOK_URL}}" },
+            { "name": "crm_name", "value": "{{CRM_NAME}}" },
+            { "name": "calendar_tool", "value": "{{CALENDAR_TOOL}}" },
+            { "name": "page_token", "value": "{{MESSENGER_PAGE_TOKEN}}" },
+            { "name": "page_id", "value": "{{FACEBOOK_PAGE_ID}}" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [460, 0]
+    },
+    {
+      "parameters": {
+        "url": "{{APP_BASE_URL}}/api/ai-reply",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json",
+          "responseFormat": "json"
+        },
+        "bodyParametersJson": "{\n  \"message\": \"={{$json['text']}}\",\n  \"channel\": \"messenger\",\n  \"sender\": \"={{$json['from']}}\",\n  \"context\": {\n    \"company_name\": \"={{$json['company_name']}}\",\n    \"business_focus\": \"={{$json['business_focus']}}\",\n    \"industry\": \"={{$json['industry']}}\",\n    \"goals\": \"={{$json['goals']}}\",\n    \"crm_name\": \"={{$json['crm_name']}}\",\n    \"calendar_tool\": \"={{$json['calendar_tool']}}\"\n  }\n}"
+      },
+      "name": "AI Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [700, 0]
+    },
+    {
+      "parameters": {
+        "mode": "mergeByIndex"
+      },
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [940, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v18.0/{{$json['page_id']}}/messages",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "{\n  \"recipient\": {\n    \"id\": \"={{$json['from']}}\"\n  },\n  \"message\": {\n    \"text\": \"={{$json['reply'] || 'Gracias por tu mensaje.'}}\"\n  }\n}",
+        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$json['page_token']}}\",\n  \"Content-Type\": \"application/json\"\n}"
+      },
+      "name": "Enviar Messenger",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1180, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            { "value1": "={{$json['crm_webhook_url']}}", "operation": "isNotEmpty" }
+          ]
+        }
+      },
+      "name": "IF CRM",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1420, -120]
+    },
+    {
+      "parameters": {
+        "url": "={{$json['crm_webhook_url']}}",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "{\n  \"source\": \"messenger\",\n  \"from\": \"={{$json['from']}}\",\n  \"message\": \"={{$json['text']}}\",\n  \"company\": \"={{$json['company_name']}}\"\n}"
+      },
+      "name": "Enviar CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1640, -120]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            { "value1": "={{$json['calendar_webhook_url']}}", "operation": "isNotEmpty" }
+          ]
+        }
+      },
+      "name": "IF Agenda",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1420, 120]
+    },
+    {
+      "parameters": {
+        "url": "={{$json['calendar_webhook_url']}}",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "{\n  \"source\": \"messenger\",\n  \"from\": \"={{$json['from']}}\",\n  \"message\": \"={{$json['text']}}\",\n  \"company\": \"={{$json['company_name']}}\"\n}"
+      },
+      "name": "Enviar Agenda",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1640, 120]
+    },
+    {
+      "parameters": {
+        "responseBody": "ok"
+      },
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1880, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Parse Messenger", "type": "main", "index": 0 }]]
+    },
+    "Parse Messenger": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [
+        [{ "node": "AI Reply", "type": "main", "index": 0 }],
+        [{ "node": "Merge", "type": "main", "index": 0 }]
+      ]
+    },
+    "AI Reply": {
+      "main": [[{ "node": "Merge", "type": "main", "index": 1 }]]
+    },
+    "Merge": {
+      "main": [[{ "node": "Enviar Messenger", "type": "main", "index": 0 }]]
+    },
+    "Enviar Messenger": {
+      "main": [[{ "node": "IF CRM", "type": "main", "index": 0 }, { "node": "IF Agenda", "type": "main", "index": 0 }]]
+    },
+    "IF CRM": {
+      "main": [[{ "node": "Enviar CRM", "type": "main", "index": 0 }], [{ "node": "Responder", "type": "main", "index": 0 }]]
+    },
+    "Enviar CRM": {
+      "main": [[{ "node": "Responder", "type": "main", "index": 0 }]]
+    },
+    "IF Agenda": {
+      "main": [[{ "node": "Enviar Agenda", "type": "main", "index": 0 }], [{ "node": "Responder", "type": "main", "index": 0 }]]
+    },
+    "Enviar Agenda": {
+      "main": [[{ "node": "Responder", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

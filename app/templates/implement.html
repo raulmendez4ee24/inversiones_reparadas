@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Implementacion enviada</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="page report">
+    <header class="report-header">
+      <div>
+        <p class="pill">Implementacion</p>
+        <h1>Solicitud recibida</h1>
+        {% if payload %}
+        <p class="lead">Folio #{{ lead_id }} · Proyecto #{{ project_id }}</p>
+        {% endif %}
+      </div>
+      <a class="ghost" href="/">Nueva auditoria</a>
+    </header>
+
+    {% if error %}
+      <section class="card">
+        <h3>Error</h3>
+        <p>{{ error }}</p>
+      </section>
+    {% else %}
+      <section class="card">
+        <h3>Estado del handoff</h3>
+        {% if consent %}
+          {% if webhook_configured %}
+            {% if webhook_status.startswith("sent") %}
+              <p>Se envio a automatizacion ({{ webhook_status }}).</p>
+            {% elif webhook_status == "failed" %}
+              <p>El webhook fallo. El proyecto quedo guardado localmente.</p>
+            {% else %}
+              <p>Webhook configurado, pendiente.</p>
+            {% endif %}
+          {% else %}
+            <p>Webhook no configurado. El proyecto quedo guardado localmente.</p>
+          {% endif %}
+          {% if payment_method %}
+            <p class="meta">Metodo de pago: {{ payment_method }}</p>
+          {% endif %}
+        {% else %}
+          <p>Falta autorizacion del cliente para contrato y/o accesos.</p>
+        {% endif %}
+        {% if n8n_result %}
+          <p class="meta">Provision n8n: {{ n8n_result.status }}</p>
+        {% endif %}
+        {% if meta_validation %}
+          <ul>
+            {% if meta_validation.whatsapp %}
+              <li>WhatsApp: {{ "OK" if meta_validation.whatsapp.ok else "ERROR" }}</li>
+            {% endif %}
+            {% if meta_validation.messenger %}
+              <li>Messenger: {{ "OK" if meta_validation.messenger.ok else "ERROR" }}</li>
+            {% endif %}
+          </ul>
+        {% endif %}
+      </section>
+
+      <section class="report-grid">
+        <article class="card">
+          <h3>Modulos seleccionados</h3>
+          <ul>
+            {% for module in selected_modules %}
+              <li>{{ module }}</li>
+            {% endfor %}
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Preferencias</h3>
+          {% if delivery_channels %}
+            <p class="meta">Entrega:</p>
+            <ul>
+              {% for channel in delivery_channels %}
+                <li>{{ channel }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="meta">Sin preferencias de entrega.</p>
+          {% endif %}
+
+          {% if bot_preferences %}
+            <p class="meta">Bots solicitados:</p>
+            <ul>
+              {% for bot in bot_preferences %}
+                <li>{{ bot }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="meta">Sin bots seleccionados.</p>
+          {% endif %}
+        </article>
+        <article class="card">
+          <h3>Resumen de retorno</h3>
+          <div class="kpi">
+            <span>MXN recuperados/mes</span>
+            <strong>{{ output.roi_mxn_saved_per_month }}</strong>
+          </div>
+          <div class="kpi">
+            <span>Implementacion unica (MXN)</span>
+            <strong>${{ output.pricing.setup_fee_mxn }}</strong>
+          </div>
+        </article>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>

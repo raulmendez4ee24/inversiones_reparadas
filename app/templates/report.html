@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reporte IA | {{ payload.company_name }}</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="page report">
+    <header class="report-header">
+      <div>
+        <p class="pill">Auditoria IA</p>
+        <h1>{{ payload.company_name }}</h1>
+        <p class="lead">{{ payload.industry }} · {{ payload.region }}</p>
+      </div>
+      <a class="ghost" href="/">Nueva auditoria</a>
+    </header>
+
+    <section class="report-grid">
+      <article class="card">
+        <h3>Fricciones detectadas</h3>
+        <ul>
+          {% for item in output.friction_points %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </article>
+      <article class="card highlight">
+        <h3>Retorno estimado</h3>
+        <div class="kpi">
+          <span>Horas recuperadas/mes</span>
+          <strong>{{ output.roi_hours_saved_per_month }}</strong>
+        </div>
+        <div class="kpi">
+          <span>MXN recuperados/mes</span>
+          <strong>{{ output.roi_mxn_saved_per_month }}</strong>
+        </div>
+        <div class="kpi">
+          <span>Recuperacion de inversion</span>
+          <strong>{{ output.payback_months }} meses</strong>
+        </div>
+      </article>
+    </section>
+
+    <section class="card">
+      <h3>Modulos recomendados</h3>
+      <div class="modules">
+        {% for module in output.recommended_modules %}
+        <div class="module">
+          <h4>{{ module.name }}</h4>
+          <p>{{ module.description }}</p>
+          <p class="meta">Esfuerzo {{ module.effort }} · Impacto {{ module.impact }}/5 · {{ module.estimated_weeks }} semanas</p>
+          <p class="tags">Integraciones: {{ module.integrations | join(", ") }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if output.optional_modules %}
+    <section class="card">
+      <h3>Opciones adicionales (si aplica)</h3>
+      <div class="modules">
+        {% for module in output.optional_modules %}
+        <div class="module">
+          <h4>{{ module.name }}</h4>
+          <p>{{ module.description }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="report-grid">
+      <article class="card">
+        <h3>Plan sugerido</h3>
+        <ol class="roadmap">
+          {% for phase in output.roadmap %}
+          <li>
+            <strong>{{ phase.name }}</strong>
+            <span>{{ phase.focus }} · {{ phase.duration_weeks }} semanas</span>
+            <em>{{ phase.deliverable }}</em>
+          </li>
+          {% endfor %}
+        </ol>
+      </article>
+      <article class="card">
+        <h3>Perfil del equipo</h3>
+        <div class="kpi">
+          <span>Equipo actual</span>
+          <strong>{{ payload.team_size }}</strong>
+        </div>
+        {% if payload.team_size_target %}
+        <div class="kpi">
+          <span>Equipo objetivo</span>
+          <strong>{{ payload.team_size_target }}</strong>
+        </div>
+        {% endif %}
+        <p class="meta">Actividad principal: {{ payload.business_focus }}</p>
+        {% if payload.team_focus_same is not none %}
+        <p class="meta">Equipo {{ "en una sola area" if payload.team_focus_same else "mixto" }}.</p>
+        {% endif %}
+        {% if payload.team_roles %}
+        <p class="meta">Roles: {{ payload.team_roles }}</p>
+        {% endif %}
+      </article>
+      <article class="card">
+        <h3>Cotizacion clara</h3>
+        <p class="meta">Explicado facil: pagas una vez la implementacion y despues un mantenimiento mensual.</p>
+        <div class="kpi">
+          <span>Implementacion unica (MXN)</span>
+          <strong>${{ output.pricing.setup_fee_mxn }}</strong>
+        </div>
+        <div class="kpi">
+          <span>Mantenimiento mensual (MXN)</span>
+          <strong>${{ output.pricing.monthly_retainer_mxn }}</strong>
+        </div>
+        <div class="meta">
+          <strong>Proceso de pago</strong>
+        </div>
+        <ol class="roadmap">
+          <li>Confirmas la propuesta.</li>
+          <li>Firmamos contrato y compartes accesos.</li>
+          <li>Recibes link de pago (transferencia o tarjeta).</li>
+          <li>Iniciamos implementacion.</li>
+        </ol>
+        <ul>
+          {% for item in output.pricing.assumptions %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </article>
+    </section>
+
+    <section class="card">
+      <h3>Nota ejecutiva</h3>
+      <p>{{ output.notes }}</p>
+      {% if output.opportunities %}
+      <h4>Oportunidades aplicables</h4>
+      <ul>
+        {% for item in output.opportunities %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if output.limitations %}
+      <h4>Limitaciones del rubro</h4>
+      <ul>
+        {% for item in output.limitations %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if output.data_needed %}
+      <h4>Datos que necesitamos</h4>
+      <ul>
+        {% for item in output.data_needed %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    <section class="card cta">
+      <h3>Quieres que lo implementemos?</h3>
+      <p class="meta">Con un clic iniciamos el proceso de accesos y contrato.</p>
+      <form method="post" action="/handoff">
+        <input type="hidden" name="company_name" value="{{ payload.company_name }}" />
+        <input type="hidden" name="industry" value="{{ payload.industry }}" />
+        <input type="hidden" name="business_focus" value="{{ payload.business_focus }}" />
+        <input type="hidden" name="region" value="{{ payload.region }}" />
+        <input type="hidden" name="team_size" value="{{ payload.team_size }}" />
+        <input type="hidden" name="team_size_target" value="{{ payload.team_size_target or '' }}" />
+        <input type="hidden" name="team_focus_same" value="{% if payload.team_focus_same is not none %}{{ 'si' if payload.team_focus_same else 'no' }}{% endif %}" />
+        <input type="hidden" name="team_roles" value="{{ payload.team_roles or '' }}" />
+        <input type="hidden" name="avg_daily_cost_mxn" value="{{ payload.avg_daily_cost_mxn }}" />
+        <input type="hidden" name="manual_days_per_week" value="{{ payload.manual_days_per_week }}" />
+        <input type="hidden" name="processes" value="{{ payload.processes }}" />
+        <input type="hidden" name="bottlenecks" value="{{ payload.bottlenecks }}" />
+        <input type="hidden" name="systems" value="{{ payload.systems }}" />
+        <input type="hidden" name="goals" value="{{ payload.goals }}" />
+        <input type="hidden" name="budget_range" value="{{ payload.budget_range or '' }}" />
+        <input type="hidden" name="contact_email" value="{{ payload.contact_email or '' }}" />
+        <button type="submit">Implementar ahora</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

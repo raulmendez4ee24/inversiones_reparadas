@@ -1,0 +1,70 @@
+{
+  "name": "WhatsApp Bot Base",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "whatsapp-{{PROJECT_ID}}",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            { "name": "whatsapp_token", "value": "{{WHATSAPP_TOKEN}}" },
+            { "name": "phone_number_id", "value": "{{WHATSAPP_PHONE_NUMBER_ID}}" }
+          ]
+        }
+      },
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v18.0/{{WHATSAPP_PHONE_NUMBER_ID}}/messages",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "{\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{WHATSAPP_TEST_NUMBER}}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"Hola, recibimos tu mensaje.\" }\n}",
+        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{WHATSAPP_TOKEN}}\",\n  \"Content-Type\": \"application/json\"\n}"
+      },
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [470, 0]
+    },
+    {
+      "parameters": {
+        "responseBody": "ok"
+      },
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [720, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Enviar WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Enviar WhatsApp": {
+      "main": [[{ "node": "Responder", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

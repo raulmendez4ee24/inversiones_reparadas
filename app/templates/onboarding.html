@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Onboarding | {{ payload.company_name }}</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="page report">
+    <header class="report-header">
+      <div>
+        <p class="pill">Onboarding</p>
+        <h1>Accesos e implementacion</h1>
+        <p class="lead">Folio #{{ lead_id }} · {{ payload.company_name }}</p>
+      </div>
+      <a class="ghost" href="/">Nueva auditoria</a>
+    </header>
+
+    <form class="onboarding-form" method="post" action="/implement">
+      <input type="hidden" name="lead_id" value="{{ lead_id }}" />
+
+      <section class="card">
+        <h3>Proceso claro (paso a paso)</h3>
+        <ol class="roadmap">
+          <li>
+            <strong>Analisis GPT-5</strong>
+            <span>Detectamos que se puede automatizar en tu negocio.</span>
+          </li>
+          <li>
+            <strong>Seleccion de modulos</strong>
+            <span>Elegimos los flujos exactos que necesitas.</span>
+          </li>
+          <li>
+            <strong>Accesos seguros</strong>
+            <span>Recibimos API keys o usuarios tecnicos (sin contraseñas personales).</span>
+          </li>
+          <li>
+            <strong>Contrato y pago</strong>
+            <span>Autorizas el inicio y se emite el contrato.</span>
+          </li>
+          <li>
+            <strong>Implementacion</strong>
+            <span>Construimos flujos en n8n, probamos y dejamos todo funcionando.</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="card">
+        <h3>Explicacion simple</h3>
+        <p class="meta">
+          Una API es una llave segura que permite que dos sistemas se conecten sin entrar manualmente.
+          La usamos para automatizar tu negocio sin pedir contraseñas personales.
+        </p>
+        <ul>
+          <li>Tu nos compartes accesos (tokens o usuarios tecnicos).</li>
+          <li>Nosotros armamos los flujos en n8n y conectamos tus sistemas.</li>
+          <li>Todo queda documentado y puedes revocar accesos cuando quieras.</li>
+        </ul>
+        <p class="meta">
+          Lo minimo que pedimos: URL del sistema, API key/token o usuario tecnico, y permisos de lectura/escritura.
+        </p>
+      </section>
+
+      <section class="card">
+        <h3>Preferencias de entrega</h3>
+        <p class="meta">Selecciona como quieres recibir resultados y automatizaciones.</p>
+        <div class="module-grid">
+          <label class="module-choice">
+            <input type="checkbox" name="delivery_channels" value="whatsapp_total" />
+            <span>Todo por WhatsApp</span>
+            <small>Mensajes y avisos en WhatsApp.</small>
+          </label>
+          <label class="module-choice">
+            <input type="checkbox" name="delivery_channels" value="pdf" />
+            <span>Reporte en PDF</span>
+            <small>Documento descargable.</small>
+          </label>
+          <label class="module-choice">
+            <input type="checkbox" name="delivery_channels" value="pdf_whatsapp" />
+            <span>PDF por WhatsApp</span>
+            <small>Recibe el PDF directo en WhatsApp.</small>
+          </label>
+          <label class="module-choice">
+            <input type="checkbox" name="delivery_channels" value="email" />
+            <span>Correo</span>
+            <small>Resumenes por email.</small>
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Tipo de bot o asistente</h3>
+        <p class="meta">Marca lo que quieres implementar.</p>
+        <div class="module-grid">
+          <label class="module-choice">
+            <input type="checkbox" name="bot_preferences" value="chatbot" />
+            <span>Chatbot de atencion</span>
+            <small>Responde preguntas frecuentes y soporte.</small>
+          </label>
+          <label class="module-choice">
+            <input type="checkbox" name="bot_preferences" value="ventas" />
+            <span>Bot de ventas</span>
+            <small>Califica leads y agenda.</small>
+          </label>
+          <label class="module-choice">
+            <input type="checkbox" name="bot_preferences" value="agente_operativo" />
+            <span>Agente operativo</span>
+            <small>Reportes, alertas y tareas internas.</small>
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Selecciona los modulos a implementar</h3>
+        <div class="module-grid">
+          {% for module in modules %}
+          <label class="module-choice">
+            <input type="checkbox" name="selected_modules" value="{{ module.name }}" {% if module.name in recommended %}checked{% endif %} />
+            <span>{{ module.name }}</span>
+            <small>{{ module.description }}</small>
+          </label>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Accesos requeridos</h3>
+        <p class="meta">Solo veras los accesos necesarios segun los modulos seleccionados.</p>
+        <div class="access-grid">
+          {% for item in access_items %}
+          <div class="access-item" data-modules="{{ item.modules | join('|') }}">
+            <h4>{{ item.label }}</h4>
+            <p class="meta">{{ item.description }}</p>
+            <textarea name="access_{{ item.key }}" rows="3" placeholder="{{ item.placeholder }}"></textarea>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Accesos Meta / WhatsApp</h3>
+        <p class="meta">Si quieres chatbots en WhatsApp o Messenger, llena estos datos.</p>
+        <div class="module-grid">
+          <label class="module-choice">
+            <input type="checkbox" name="wants_whatsapp" />
+            <span>Quiero WhatsApp</span>
+            <small>Bot de WhatsApp con respuestas y agenda.</small>
+          </label>
+          <label class="module-choice">
+            <input type="checkbox" name="wants_messenger" />
+            <span>Quiero Messenger</span>
+            <small>Chatbot en Facebook Messenger.</small>
+          </label>
+        </div>
+        <div class="meta-connect">
+          <div>
+            <p class="meta">
+              Si prefieres, inicia sesion con Meta para que podamos solicitar permisos y validar tu cuenta.
+              Puedes conectar primero y despues completar los IDs y tokens.
+            </p>
+          </div>
+          <div class="meta-actions">
+            <a class="button-link" href="/meta/connect?lead_id={{ lead_id }}" target="_blank" rel="noopener">
+              Conectar con Meta
+            </a>
+            {% if meta_connected %}
+              <span class="status ok">Conectado</span>
+            {% else %}
+              <span class="status">Sin conectar</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="access-grid">
+          <label>
+            Meta Business ID
+            <input type="text" name="meta_business_id" placeholder="Ej. 1234567890" />
+          </label>
+          <label>
+            Facebook Page ID (Messenger)
+            <input type="text" name="facebook_page_id" placeholder="Ej. 1122334455" />
+          </label>
+          <label>
+            Messenger Page Token
+            <input type="text" name="messenger_page_token" placeholder="Token de pagina" />
+          </label>
+          <label>
+            PSID de prueba (Messenger)
+            <input type="text" name="messenger_test_psid" placeholder="Opcional, para pruebas" />
+          </label>
+          <label>
+            WhatsApp WABA ID
+            <input type="text" name="whatsapp_waba_id" placeholder="Ej. 987654321" />
+          </label>
+          <label>
+            WhatsApp Phone Number ID
+            <input type="text" name="whatsapp_phone_number_id" placeholder="Ej. 123123123" />
+          </label>
+          <label>
+            WhatsApp Token
+            <input type="text" name="whatsapp_token" placeholder="Token de acceso" />
+          </label>
+          <label>
+            Numero de prueba WhatsApp
+            <input type="text" name="whatsapp_test_number" placeholder="Ej. +5215512345678" />
+          </label>
+          <label>
+            Webhook Verify Token
+            <input type="text" name="webhook_verify_token" placeholder="Token de verificacion" />
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Plantilla avanzada (Agenda + CRM)</h3>
+        <p class="meta">Si quieres que el bot agende y cree leads automaticamente.</p>
+        <label class="consent">
+          <input type="checkbox" name="advanced_workflow" />
+          Activar plantilla avanzada
+        </label>
+        <div class="access-grid">
+          <label>
+            Nombre del CRM (opcional)
+            <input type="text" name="crm_name" placeholder="Ej. HubSpot, Pipedrive, Zoho" />
+          </label>
+          <label>
+            Webhook CRM (opcional)
+            <input type="text" name="crm_webhook_url" placeholder="https://tu-crm.com/webhook" />
+          </label>
+          <label>
+            Herramienta de agenda (opcional)
+            <input type="text" name="calendar_tool" placeholder="Ej. Google Calendar, Calendly" />
+          </label>
+          <label>
+            Webhook Agenda (opcional)
+            <input type="text" name="calendar_webhook_url" placeholder="https://tu-agenda.com/webhook" />
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Contrato y pago</h3>
+        <p class="meta">
+          Al enviar esta solicitud generamos el contrato y el link de pago. Solo trabajamos con
+          autorizacion por escrito.
+        </p>
+        <label>
+          Metodo de pago preferido
+          <select name="payment_method">
+            <option value="">Selecciona una opcion</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="transferencia">Transferencia</option>
+          </select>
+        </label>
+        <label class="consent">
+          <input type="checkbox" name="consent" />
+          Acepto que K'an Logic Systems genere el contrato y reciba el pago para iniciar la implementacion.
+        </label>
+      </section>
+
+      <section class="card">
+        <h3>Notas adicionales</h3>
+        <textarea name="notes" rows="4" placeholder="Cualquier detalle adicional para el equipo tecnico"></textarea>
+        <label class="consent">
+          <input type="checkbox" name="access_consent" />
+          Autorizo a K'an Logic Systems a usar estos accesos para implementar automatizaciones.
+        </label>
+      </section>
+
+      <button type="submit">Enviar a implementacion</button>
+    </form>
+  </main>
+
+  <script>
+    const moduleInputs = Array.from(document.querySelectorAll('input[name="selected_modules"]'));
+    const accessItems = Array.from(document.querySelectorAll('.access-item'));
+
+    function refreshAccess() {
+      const selected = moduleInputs.filter((input) => input.checked).map((input) => input.value);
+      accessItems.forEach((item) => {
+        const modules = item.dataset.modules ? item.dataset.modules.split('|') : [];
+        const show = modules.length === 0 || modules.some((moduleName) => selected.includes(moduleName));
+        item.style.display = show ? 'block' : 'none';
+      });
+    }
+
+    moduleInputs.forEach((input) => input.addEventListener('change', refreshAccess));
+    refreshAccess();
+  </script>
+</body>
+</html>

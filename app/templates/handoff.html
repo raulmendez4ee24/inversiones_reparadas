@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Implementacion enviada | {{ payload.company_name }}</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="page report">
+    <header class="report-header">
+      <div>
+        <p class="pill">Implementacion</p>
+        <h1>Listo, lo recibimos</h1>
+        <p class="lead">Folio #{{ lead_id }} · {{ payload.company_name }}</p>
+      </div>
+      <a class="ghost" href="/">Nueva auditoria</a>
+    </header>
+
+    <section class="card">
+      <h3>Estado del handoff</h3>
+      {% if webhook_configured %}
+        {% if webhook_status.startswith("sent") %}
+          <p>Se envio el paquete a automatizacion ({{ webhook_status }}).</p>
+        {% elif webhook_status == "failed" %}
+          <p>El webhook fallo. Tu lead ya quedo guardado localmente.</p>
+        {% else %}
+          <p>Webhook configurado, en espera.</p>
+        {% endif %}
+      {% else %}
+        <p>Webhook no configurado. Tu lead quedo guardado localmente.</p>
+      {% endif %}
+    </section>
+
+    <section class="report-grid">
+      <article class="card">
+        <h3>Resumen</h3>
+        <ul>
+          <li>Industria: {{ payload.industry }}</li>
+          <li>Equipo: {{ payload.team_size }}</li>
+          <li>Ahorro mensual (MXN): ${{ output.roi_mxn_saved_per_month }}</li>
+          <li>Setup (MXN): ${{ output.pricing.setup_fee_mxn }}</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3>Siguiente paso</h3>
+        <p>Configura el webhook de n8n para activar las automatizaciones base.</p>
+        <p class="meta">Variable requerida: <strong>N8N_WEBHOOK_URL</strong></p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
