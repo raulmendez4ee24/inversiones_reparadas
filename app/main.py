@@ -13,6 +13,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+import sys
+
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 from app.core.access import access_items
 from app.core.analysis import run_analysis
 from app.core.ai_reply import generate_ai_reply
