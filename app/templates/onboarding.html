@@ -50,15 +50,48 @@
       <section class="card highlight">
         <h3>Portal seguro del cliente</h3>
         <p class="meta">
-          Este codigo es unico para tu empresa. Guardalo: no lo mostraremos otra vez.
+          Este codigo es unico para tu empresa y sirve como respaldo. Guardalo: no lo mostraremos otra vez.
         </p>
         <div class="kpi">
-          <span>Codigo de acceso</span>
+          <span>Codigo de respaldo</span>
           <strong>{{ access_code }}</strong>
         </div>
         <p class="meta">Entra al portal cuando quieras desde /portal.</p>
       </section>
       {% endif %}
+
+      <section class="card">
+        <h3>Cuenta de acceso (obligatorio)</h3>
+        <p class="meta">
+          Para seguridad y seguimiento, crea tu acceso con correo y contrasena.
+        </p>
+        <div class="grid">
+          <label>
+            Correo de acceso
+            <input type="email" name="portal_email" placeholder="tu@empresa.com" value="{{ payload.contact_email or '' }}" required />
+          </label>
+          <label>
+            Contrasena
+            <input type="password" name="portal_password" placeholder="Minimo 6 caracteres" required />
+          </label>
+          <label>
+            Confirmar contrasena
+            <input type="password" name="portal_password_confirm" placeholder="Repite tu contrasena" required />
+          </label>
+        </div>
+        <label class="consent">
+          <input type="checkbox" name="marketing_opt_in" />
+          Acepto recibir comunicados, novedades y promociones relacionadas.
+        </label>
+        <label>
+          Canal preferido
+          <select name="marketing_channel">
+            <option value="">Selecciona una opcion</option>
+            <option value="email">Email</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+        </label>
+      </section>
 
       <section class="card">
         <h3>Explicacion simple</h3>
@@ -286,6 +319,7 @@
   </main>
 
   <script>
+    const form = document.querySelector(".onboarding-form");
     const moduleInputs = Array.from(document.querySelectorAll('input[name="selected_modules"]'));
     const accessItems = Array.from(document.querySelectorAll('.access-item'));
 
@@ -300,6 +334,17 @@
 
     moduleInputs.forEach((input) => input.addEventListener('change', refreshAccess));
     refreshAccess();
+
+    if (form) {
+      form.addEventListener("submit", (event) => {
+        const pwd = form.querySelector("input[name='portal_password']");
+        const confirm = form.querySelector("input[name='portal_password_confirm']");
+        if (pwd && confirm && pwd.value !== confirm.value) {
+          event.preventDefault();
+          alert("Las contrasenas no coinciden.");
+        }
+      });
+    }
   </script>
 </body>
 </html>

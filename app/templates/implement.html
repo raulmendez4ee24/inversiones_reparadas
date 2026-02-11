@@ -45,6 +45,9 @@
         {% else %}
           <p>Falta autorizacion del cliente para contrato y/o accesos.</p>
         {% endif %}
+        {% if login_warning %}
+          <p class="meta" style="color:#9b3b2b;">{{ login_warning }}</p>
+        {% endif %}
         {% if n8n_result %}
           <p class="meta">Provision n8n: {{ n8n_result.status }}</p>
         {% endif %}

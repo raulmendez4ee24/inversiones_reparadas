@@ -20,8 +20,8 @@
     <section class="card">
       <h3>Iniciar sesion</h3>
       <p class="meta">
-        Usa tu folio y el codigo de acceso que se genero al confirmar la implementacion.
-        Si tu empresa registro un correo, tambien lo validaremos.
+        Accede con el correo y la contrasena que configuraste en el onboarding.
+        Esto protege tus datos y mantiene un historial seguro.
       </p>
       {% if error %}
         <p class="meta" style="color:#9b3b2b;">{{ error }}</p>
@@ -29,16 +29,12 @@
       <form method="post" action="/portal/login" class="diagnostic-form">
         <div class="grid">
           <label>
-            Folio
-            <input type="number" name="lead_id" min="1" placeholder="Ej. 1024" required />
+            Correo
+            <input type="email" name="email" placeholder="tu@empresa.com" required />
           </label>
           <label>
-            Codigo de acceso
-            <input type="text" name="access_code" placeholder="6 digitos" required />
-          </label>
-          <label>
-            Correo (si se registro)
-            <input type="email" name="email" placeholder="tu@empresa.com" />
+            Contrasena
+            <input type="password" name="password" placeholder="Minimo 6 caracteres" required />
           </label>
         </div>
         <button type="submit">Entrar al portal</button>

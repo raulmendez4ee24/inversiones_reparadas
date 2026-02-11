@@ -29,12 +29,14 @@ from app.core.modules import catalog
 from app.core.n8n import provision_workflows
 from app.core.storage import (
     fetch_lead,
+    fetch_lead_id_by_email,
     fetch_latest_project,
     fetch_oauth_token,
     init_db,
     save_lead,
     save_oauth_token,
     save_project,
+    update_lead_credentials,
     update_project_status,
     validate_portal_login,
 )
@@ -468,6 +470,31 @@ async def implement(request: Request):
     bot_preferences = form.getlist("bot_preferences")
     meta_oauth = fetch_oauth_token(DB_PATH, lead_id, "meta")
     meta_oauth_connected = meta_oauth is not None
+    portal_email = (form.get("portal_email") or "").strip()
+    portal_password = (form.get("portal_password") or "").strip()
+    portal_password_confirm = (form.get("portal_password_confirm") or "").strip()
+    marketing_opt_in = form.get("marketing_opt_in") == "on"
+    marketing_channel = (form.get("marketing_channel") or "").strip()
+
+    login_warning = None
+    if not portal_email:
+        login_warning = "Necesitamos un correo para activar tu portal."
+    elif not portal_password:
+        login_warning = "Necesitas crear una contrasena para tu portal."
+    elif portal_password != portal_password_confirm:
+        login_warning = "Las contrasenas no coinciden."
+    elif len(portal_password) < 6:
+        login_warning = "La contrasena debe tener al menos 6 caracteres."
+
+    if not login_warning:
+        update_lead_credentials(
+            DB_PATH,
+            lead_id,
+            portal_email,
+            portal_password,
+            marketing_opt_in,
+            marketing_channel,
+        )
 
     delivery_map = {
         "whatsapp_total": "Todo por WhatsApp",
@@ -499,6 +526,8 @@ async def implement(request: Request):
         "meta_access": meta_access,
         "automation_options": automation_options,
         "meta_oauth_connected": meta_oauth_connected,
+        "marketing_opt_in": marketing_opt_in,
+        "marketing_channel": marketing_channel,
     }
     for item in access_items():
         key = f"access_{item['key']}"
@@ -590,6 +619,7 @@ async def implement(request: Request):
             "n8n_result": n8n_result,
             "meta_validation": meta_validation,
             "meta_oauth_connected": meta_oauth_connected,
+            "login_warning": login_warning,
             "automation_options": automation_options,
             "selected_modules": selected_modules,
         },
@@ -628,17 +658,26 @@ async def portal_login(request: Request):
 @app.post("/portal/login", response_class=HTMLResponse)
 async def portal_login_post(
     request: Request,
-    lead_id: int = Form(...),
-    access_code: str = Form(...),
     email: str = Form(""),
+    password: str = Form(""),
 ):
-    ok, error = validate_portal_login(DB_PATH, lead_id, email, access_code)
+    ok, error = validate_portal_login(DB_PATH, email, password)
     if not ok:
         return templates.TemplateResponse(
             "portal_login.html",
             {
                 "request": request,
                 "error": error,
+            },
+        )
+
+    lead_id = fetch_lead_id_by_email(DB_PATH, email)
+    if lead_id is None:
+        return templates.TemplateResponse(
+            "portal_login.html",
+            {
+                "request": request,
+                "error": "No encontramos tu cuenta.",
             },
         )
 

@@ -45,6 +45,10 @@ def init_db(db_path: Path) -> None:
                 goals TEXT NOT NULL,
                 budget_range TEXT,
                 contact_email TEXT,
+                password_hash TEXT,
+                password_salt TEXT,
+                marketing_opt_in INTEGER,
+                marketing_channel TEXT,
                 access_code_hash TEXT,
                 access_code_hint TEXT,
                 diagnosis_json TEXT NOT NULL
@@ -88,6 +92,10 @@ def init_db(db_path: Path) -> None:
         _ensure_column(conn, "leads", "team_size_target", "INTEGER")
         _ensure_column(conn, "leads", "team_focus_same", "INTEGER")
         _ensure_column(conn, "leads", "team_roles", "TEXT")
+        _ensure_column(conn, "leads", "password_hash", "TEXT")
+        _ensure_column(conn, "leads", "password_salt", "TEXT")
+        _ensure_column(conn, "leads", "marketing_opt_in", "INTEGER")
+        _ensure_column(conn, "leads", "marketing_channel", "TEXT")
         _ensure_column(conn, "leads", "access_code_hash", "TEXT")
         _ensure_column(conn, "leads", "access_code_hint", "TEXT")
         conn.commit()
@@ -97,6 +105,10 @@ def init_db(db_path: Path) -> None:
 
 def _hash_code(code: str) -> str:
     return sha256(code.encode("utf-8")).hexdigest()
+
+
+def _hash_password(password: str, salt: str) -> str:
+    return sha256(f"{salt}{password}".encode("utf-8")).hexdigest()
 
 
 def _generate_access_code() -> str:
@@ -241,39 +253,107 @@ def fetch_lead(db_path: Path, lead_id: int) -> Tuple[BusinessInput, AnalysisOutp
     return payload, analysis
 
 
-def validate_portal_login(
+def update_lead_credentials(
     db_path: Path,
     lead_id: int,
     email: str | None,
-    access_code: str,
-) -> tuple[bool, str | None]:
+    password: str | None,
+    marketing_opt_in: bool,
+    marketing_channel: str | None,
+) -> None:
+    conn = sqlite3.connect(db_path)
+    try:
+        fields = []
+        values: list[object] = []
+
+        if email:
+            fields.append("contact_email = ?")
+            values.append(email.strip())
+
+        if password:
+            salt = secrets.token_hex(8)
+            pwd_hash = _hash_password(password, salt)
+            fields.append("password_hash = ?")
+            values.append(pwd_hash)
+            fields.append("password_salt = ?")
+            values.append(salt)
+
+        fields.append("marketing_opt_in = ?")
+        values.append(1 if marketing_opt_in else 0)
+        fields.append("marketing_channel = ?")
+        values.append(marketing_channel or None)
+
+        if not fields:
+            return
+
+        values.append(lead_id)
+        conn.execute(
+            f"UPDATE leads SET {', '.join(fields)} WHERE id = ?",
+            tuple(values),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def fetch_lead_id_by_email(db_path: Path, email: str) -> int | None:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     try:
         row = conn.execute(
             """
-            SELECT contact_email, access_code_hash
+            SELECT id
             FROM leads
-            WHERE id = ?
+            WHERE lower(contact_email) = ?
+            ORDER BY id DESC
+            LIMIT 1
             """,
-            (lead_id,),
+            (email.strip().lower(),),
         ).fetchone()
     finally:
         conn.close()
 
     if row is None:
-        return False, "Folio no encontrado."
+        return None
+    return int(row["id"])
 
-    if not access_code:
-        return False, "Ingresa tu codigo de acceso."
 
-    contact_email = (row["contact_email"] or "").strip().lower()
-    if contact_email and (email or "").strip().lower() != contact_email:
-        return False, "El correo no coincide con el registrado."
+def validate_portal_login(
+    db_path: Path,
+    email: str,
+    password: str,
+) -> tuple[bool, str | None]:
+    if not email:
+        return False, "Ingresa tu correo."
+    if not password:
+        return False, "Ingresa tu contrasena."
 
-    stored_hash = row["access_code_hash"] or ""
-    if stored_hash != _hash_code(access_code.strip()):
-        return False, "Codigo incorrecto."
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            """
+            SELECT password_hash, password_salt
+            FROM leads
+            WHERE lower(contact_email) = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (email.strip().lower(),),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    if row is None:
+        return False, "Correo no encontrado."
+
+    stored_hash = row["password_hash"] or ""
+    salt = row["password_salt"] or ""
+    if not stored_hash or not salt:
+        return False, "Tu cuenta aun no tiene contrasena activada."
+
+    if stored_hash != _hash_password(password.strip(), salt):
+        return False, "Contrasena incorrecta."
 
     return True, None
 
