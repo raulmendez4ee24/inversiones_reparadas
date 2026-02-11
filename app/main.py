@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import secrets
 import urllib.parse
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
@@ -47,7 +48,15 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR.parent / "data"
 DB_PATH = DATA_DIR / "leads.db"
 
-app = FastAPI(title="K'an Logic Systems", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    DATA_DIR.mkdir(exist_ok=True)
+    init_db(DB_PATH)
+    yield
+
+
+app = FastAPI(title="K'an Logic Systems", version="0.1.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -101,12 +110,6 @@ class AIReplyRequest(BaseModel):
     channel: str | None = None
     sender: str | None = None
     context: dict | None = None
-
-
-@app.on_event("startup")
-async def startup():
-    DATA_DIR.mkdir(exist_ok=True)
-    init_db(DB_PATH)
 
 
 @app.get("/", response_class=HTMLResponse)
