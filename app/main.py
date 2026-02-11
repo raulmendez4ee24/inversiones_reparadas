@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 import urllib.parse
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+from starlette.middleware.sessions import SessionMiddleware
 
 import sys
 
@@ -27,12 +29,14 @@ from app.core.modules import catalog
 from app.core.n8n import provision_workflows
 from app.core.storage import (
     fetch_lead,
+    fetch_latest_project,
     fetch_oauth_token,
     init_db,
     save_lead,
     save_oauth_token,
     save_project,
     update_project_status,
+    validate_portal_login,
 )
 
 load_dotenv()
@@ -45,6 +49,21 @@ app = FastAPI(title="K'an Logic Systems", version="0.1.0")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+def _session_secret() -> str:
+    secret = os.getenv("SESSION_SECRET", "").strip()
+    if secret:
+        return secret
+    return secrets.token_urlsafe(32)
+
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=_session_secret(),
+    same_site="lax",
+    https_only=bool(os.getenv("SESSION_COOKIE_SECURE")),
+)
 
 
 def _meta_oauth_config() -> dict[str, str]:
@@ -115,6 +134,7 @@ async def onboarding_view(request: Request, lead_id: int):
             "payload": payload,
             "output": output,
             "lead_id": lead_id,
+            "access_code": None,
             "modules": catalog(),
             "recommended": recommended,
             "access_items": access_items(),
@@ -225,7 +245,7 @@ async def handoff(
     )
 
     output = run_analysis(payload)
-    lead_id = save_lead(DB_PATH, payload, output)
+    lead_id, access_code = save_lead(DB_PATH, payload, output)
     recommended = {module.name for module in output.recommended_modules}
 
     return templates.TemplateResponse(
@@ -235,6 +255,7 @@ async def handoff(
             "payload": payload,
             "output": output,
             "lead_id": lead_id,
+            "access_code": access_code,
             "modules": catalog(),
             "recommended": recommended,
             "access_items": access_items(),
@@ -591,6 +612,69 @@ async def ai_reply(payload: AIReplyRequest):
     context = payload.context or {}
     reply = await generate_ai_reply(payload.message, context)
     return {"reply": reply}
+
+
+@app.get("/portal", response_class=HTMLResponse)
+async def portal_login(request: Request):
+    return templates.TemplateResponse(
+        "portal_login.html",
+        {
+            "request": request,
+            "error": None,
+        },
+    )
+
+
+@app.post("/portal/login", response_class=HTMLResponse)
+async def portal_login_post(
+    request: Request,
+    lead_id: int = Form(...),
+    access_code: str = Form(...),
+    email: str = Form(""),
+):
+    ok, error = validate_portal_login(DB_PATH, lead_id, email, access_code)
+    if not ok:
+        return templates.TemplateResponse(
+            "portal_login.html",
+            {
+                "request": request,
+                "error": error,
+            },
+        )
+
+    request.session["portal_lead_id"] = lead_id
+    return RedirectResponse(url="/portal/home", status_code=303)
+
+
+@app.get("/portal/home", response_class=HTMLResponse)
+async def portal_home(request: Request):
+    lead_id = request.session.get("portal_lead_id")
+    if not lead_id:
+        return RedirectResponse(url="/portal", status_code=303)
+
+    try:
+        payload, output = fetch_lead(DB_PATH, int(lead_id))
+    except ValueError:
+        request.session.pop("portal_lead_id", None)
+        return RedirectResponse(url="/portal", status_code=303)
+
+    latest_project = fetch_latest_project(DB_PATH, int(lead_id))
+    return templates.TemplateResponse(
+        "portal_home.html",
+        {
+            "request": request,
+            "payload": payload,
+            "output": output,
+            "lead_id": lead_id,
+            "latest_project": latest_project,
+        },
+    )
+
+
+@app.get("/portal/logout")
+async def portal_logout(request: Request):
+    request.session.pop("portal_lead_id", None)
+    return RedirectResponse(url="/portal", status_code=303)
 
 
 @app.get("/health")

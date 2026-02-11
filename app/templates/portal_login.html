@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portal del cliente</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="page report">
+    <header class="report-header">
+      <div>
+        <p class="pill">Portal</p>
+        <h1>Acceso seguro de clientes</h1>
+        <p class="lead">Consulta estatus, accesos y entregables en un solo lugar.</p>
+      </div>
+      <a class="ghost" href="/">Inicio</a>
+    </header>
+
+    <section class="card">
+      <h3>Iniciar sesion</h3>
+      <p class="meta">
+        Usa tu folio y el codigo de acceso que se genero al confirmar la implementacion.
+        Si tu empresa registro un correo, tambien lo validaremos.
+      </p>
+      {% if error %}
+        <p class="meta" style="color:#9b3b2b;">{{ error }}</p>
+      {% endif %}
+      <form method="post" action="/portal/login" class="diagnostic-form">
+        <div class="grid">
+          <label>
+            Folio
+            <input type="number" name="lead_id" min="1" placeholder="Ej. 1024" required />
+          </label>
+          <label>
+            Codigo de acceso
+            <input type="text" name="access_code" placeholder="6 digitos" required />
+          </label>
+          <label>
+            Correo (si se registro)
+            <input type="email" name="email" placeholder="tu@empresa.com" />
+          </label>
+        </div>
+        <button type="submit">Entrar al portal</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h3>Seguridad y privacidad</h3>
+      <ul>
+        <li>Solo usamos accesos tecnicos (tokens) y nunca pedimos contrasenas personales.</li>
+        <li>Tu puedes revocar permisos en cualquier momento desde tus cuentas.</li>
+        <li>Todo acceso queda registrado en tu proyecto.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

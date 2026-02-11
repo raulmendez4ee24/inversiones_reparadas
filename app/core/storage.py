@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import secrets
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -43,6 +45,8 @@ def init_db(db_path: Path) -> None:
                 goals TEXT NOT NULL,
                 budget_range TEXT,
                 contact_email TEXT,
+                access_code_hash TEXT,
+                access_code_hint TEXT,
                 diagnosis_json TEXT NOT NULL
             )
             """
@@ -84,13 +88,26 @@ def init_db(db_path: Path) -> None:
         _ensure_column(conn, "leads", "team_size_target", "INTEGER")
         _ensure_column(conn, "leads", "team_focus_same", "INTEGER")
         _ensure_column(conn, "leads", "team_roles", "TEXT")
+        _ensure_column(conn, "leads", "access_code_hash", "TEXT")
+        _ensure_column(conn, "leads", "access_code_hint", "TEXT")
         conn.commit()
     finally:
         conn.close()
 
 
-def save_lead(db_path: Path, payload: BusinessInput, analysis: AnalysisOutput) -> int:
+def _hash_code(code: str) -> str:
+    return sha256(code.encode("utf-8")).hexdigest()
+
+
+def _generate_access_code() -> str:
+    return f"{secrets.randbelow(10**6):06d}"
+
+
+def save_lead(db_path: Path, payload: BusinessInput, analysis: AnalysisOutput) -> tuple[int, str]:
     conn = sqlite3.connect(db_path)
+    access_code = _generate_access_code()
+    access_code_hash = _hash_code(access_code)
+    access_code_hint = access_code[-2:]
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -115,8 +132,10 @@ def save_lead(db_path: Path, payload: BusinessInput, analysis: AnalysisOutput) -
                 goals,
                 budget_range,
                 contact_email,
+                access_code_hash,
+                access_code_hint,
                 diagnosis_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 datetime.now(timezone.utc).isoformat(),
@@ -138,11 +157,13 @@ def save_lead(db_path: Path, payload: BusinessInput, analysis: AnalysisOutput) -
                 payload.goals,
                 payload.budget_range,
                 payload.contact_email,
+                access_code_hash,
+                access_code_hint,
                 json.dumps(analysis.model_dump(), ensure_ascii=False),
             ),
         )
         conn.commit()
-        return int(cursor.lastrowid)
+        return int(cursor.lastrowid), access_code
     finally:
         conn.close()
 
@@ -172,6 +193,7 @@ def fetch_lead(db_path: Path, lead_id: int) -> Tuple[BusinessInput, AnalysisOutp
                 goals,
                 budget_range,
                 contact_email,
+                access_code_hint,
                 diagnosis_json
             FROM leads
             WHERE id = ?
@@ -217,6 +239,73 @@ def fetch_lead(db_path: Path, lead_id: int) -> Tuple[BusinessInput, AnalysisOutp
     )
     analysis = AnalysisOutput(**json.loads(row["diagnosis_json"]))
     return payload, analysis
+
+
+def validate_portal_login(
+    db_path: Path,
+    lead_id: int,
+    email: str | None,
+    access_code: str,
+) -> tuple[bool, str | None]:
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            """
+            SELECT contact_email, access_code_hash
+            FROM leads
+            WHERE id = ?
+            """,
+            (lead_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    if row is None:
+        return False, "Folio no encontrado."
+
+    if not access_code:
+        return False, "Ingresa tu codigo de acceso."
+
+    contact_email = (row["contact_email"] or "").strip().lower()
+    if contact_email and (email or "").strip().lower() != contact_email:
+        return False, "El correo no coincide con el registrado."
+
+    stored_hash = row["access_code_hash"] or ""
+    if stored_hash != _hash_code(access_code.strip()):
+        return False, "Codigo incorrecto."
+
+    return True, None
+
+
+def fetch_latest_project(db_path: Path, lead_id: int) -> Dict[str, object] | None:
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            """
+            SELECT id, status, selected_modules_json, access_json, notes, created_at
+            FROM projects
+            WHERE lead_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (lead_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    if row is None:
+        return None
+
+    return {
+        "id": row["id"],
+        "status": row["status"],
+        "selected_modules": json.loads(row["selected_modules_json"]) if row["selected_modules_json"] else [],
+        "access": json.loads(row["access_json"]) if row["access_json"] else {},
+        "notes": row["notes"],
+        "created_at": row["created_at"],
+    }
 
 
 def save_project(

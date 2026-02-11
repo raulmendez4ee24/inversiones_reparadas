@@ -46,6 +46,20 @@
         </ol>
       </section>
 
+      {% if access_code %}
+      <section class="card highlight">
+        <h3>Portal seguro del cliente</h3>
+        <p class="meta">
+          Este codigo es unico para tu empresa. Guardalo: no lo mostraremos otra vez.
+        </p>
+        <div class="kpi">
+          <span>Codigo de acceso</span>
+          <strong>{{ access_code }}</strong>
+        </div>
+        <p class="meta">Entra al portal cuando quieras desde /portal.</p>
+      </section>
+      {% endif %}
+
       <section class="card">
         <h3>Explicacion simple</h3>
         <p class="meta">

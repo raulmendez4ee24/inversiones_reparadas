@@ -95,3 +95,11 @@ export META_SCOPES="pages_show_list,pages_manage_metadata,pages_messaging,whatsa
 1) Genera el diagnostico y presiona **Implementar ahora**.
 2) Selecciona modulos, agrega accesos y envia a implementacion.
 3) La solicitud se guarda en `data/leads.db` (tabla `projects`).
+
+## Portal del cliente (login)
+
+Para mantener sesiones seguras en el portal:
+
+```bash
+export SESSION_SECRET="tu_clave_larga"
+```
