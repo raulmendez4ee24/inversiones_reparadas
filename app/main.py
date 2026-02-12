@@ -51,8 +51,18 @@ DB_PATH = DATA_DIR / "leads.db"
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    DATA_DIR.mkdir(exist_ok=True)
-    init_db(DB_PATH)
+    global DB_PATH, DATA_DIR
+    try:
+        DATA_DIR.mkdir(exist_ok=True)
+        init_db(DB_PATH)
+        print(f"[startup] db ready at {DB_PATH}", flush=True)
+    except Exception as exc:
+        fallback_dir = Path(os.getenv("FALLBACK_DATA_DIR", "/tmp/kan_logic"))
+        fallback_dir.mkdir(parents=True, exist_ok=True)
+        DB_PATH = fallback_dir / "leads.db"
+        DATA_DIR = fallback_dir
+        init_db(DB_PATH)
+        print(f"[startup] db fallback at {DB_PATH} ({exc})", flush=True)
     yield
 
 
