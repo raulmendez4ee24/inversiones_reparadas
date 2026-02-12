@@ -9,16 +9,22 @@ import httpx
 from .models import BusinessInput
 
 
+def _industry_flags(payload: BusinessInput) -> dict[str, bool]:
+    text = f"{payload.industry} {payload.business_focus}".lower()
+    health = any(key in text for key in ["salud", "medico", "clinica", "consultorio", "dentista"])
+    food = any(key in text for key in ["restaurante", "alimentos", "cocina", "chef", "comida"])
+    regulated = health or food
+    return {"health": health, "food": food, "regulated": regulated}
+
+
 def _local_notes(payload: BusinessInput, friction_points: Optional[List[str]]) -> str:
     friction_summary = ", ".join(friction_points or []) or "operacion actual"
     team_target = f"El equipo objetivo es {payload.team_size_target}." if payload.team_size_target else ""
     return (
-        f"{payload.company_name} opera en {payload.industry} ({payload.business_focus}). "
-        f"El mayor bloqueo esta en "
-        f"{friction_summary}. La oportunidad inmediata es reducir tareas manuales en "
-        f"{payload.processes[:120].strip()}... {team_target} "
-        "En rubros como salud o alimentos, la automatizacion se enfoca en procesos "
-        "administrativos y repetitivos, no en el servicio humano."
+        f"La empresa opera en {payload.industry} ({payload.business_focus}). "
+        f"El mayor bloqueo esta en {friction_summary}. "
+        f"La oportunidad inmediata es reducir tareas manuales en {payload.processes[:120].strip()}... "
+        f"{team_target}".strip()
     )
 
 
@@ -29,24 +35,43 @@ def _local_insights(
     optional: List[str],
 ) -> dict:
     summary = _local_notes(payload, friction_points)
+    text = f"{payload.processes} {payload.bottlenecks} {payload.systems}".lower()
     opportunities = []
+    reasons = {
+        "Bot de ventas para WhatsApp": "captura pedidos y prospectos en WhatsApp, reduce tiempos de respuesta y agenda seguimiento",
+        "Chatbot de atencion al cliente": "responde dudas frecuentes y libera carga al equipo en soporte",
+        "Conciliacion bancaria automatica": "cruza movimientos bancarios con ventas y facturas para cerrar finanzas mas rapido",
+        "Facturacion inteligente": "genera y envia facturas automaticamente para evitar retrasos",
+        "Sincronizacion Shopify-ERP": "actualiza inventario y pedidos en tiempo real para evitar stock desactualizado",
+        "Enriquecimiento y limpieza de CRM": "ordena y limpia leads para que ventas enfoque esfuerzo en prospectos reales",
+        "Reportes y dashboards operativos": "da visibilidad diaria de ventas, inventario y cumplimiento",
+    }
     for name in recommended[:4]:
-        opportunities.append(f"{name}: aplicar un flujo enfocado a tu operacion.")
+        reason = reasons.get(name, "automatiza una tarea repetitiva clave de tu operacion")
+        opportunities.append(f"{name}: {reason}.")
     if not opportunities:
         opportunities = ["Priorizar tareas administrativas repetitivas para ahorrar tiempo."]
 
+    flags = _industry_flags(payload)
     limitations = [
-        "No se automatiza el servicio humano o clinico; solo tareas administrativas.",
-        "Se requiere validacion del cliente antes de mover dinero o datos sensibles.",
+        "Se requiere validacion humana antes de mover dinero, datos sensibles o decisiones finales.",
     ]
+    if flags["regulated"]:
+        limitations.append("En rubros regulados, la automatizacion se limita a procesos administrativos, no al servicio humano.")
     if payload.team_focus_same is False:
         limitations.append("Equipo mixto: priorizar procesos transversales primero.")
 
     data_needed = [
         f"Accesos a sistemas: {payload.systems}.",
-        "Volumen mensual de operaciones (ventas, citas, tickets).",
+        "Volumen mensual de operaciones (ventas, tickets, pedidos).",
         "Responsable interno para validar procesos y cambios.",
     ]
+    if "inventario" in text:
+        data_needed.append("Catalogo de productos e inventario actualizado.")
+    if "factura" in text or "facturacion" in text:
+        data_needed.append("Acceso al sistema de facturacion o CFDI.")
+    if "whatsapp" in text:
+        data_needed.append("Linea y API de WhatsApp Business (o proveedor actual).")
 
     if optional:
         data_needed.append("Confirmar si quieres activar opciones adicionales.")
@@ -104,10 +129,13 @@ def _gpt5_insights(
         "Eres un consultor senior de automatizacion para PyMEs. "
         "Devuelve SOLO JSON valido con estas claves: "
         "summary (string), opportunities (array), limitations (array), data_needed (array), extra_options (array).\n"
-        "summary: 3-5 frases claras y especificas segun el rubro.\n"
-        "opportunities: 3-5 bullets de automatizaciones concretas aplicables.\n"
-        "limitations: 2-3 bullets de lo que NO se automatiza en este rubro.\n"
-        "data_needed: 3-5 items de datos/accesos necesarios.\n"
+        "summary: 3-5 frases claras, profesionales y especificas segun el rubro. "
+        "Si el nombre contiene apodos o frases afectivas, no las repitas; usa 'la empresa'.\n"
+        "opportunities: 3-5 bullets con formato 'Modulo: razon concreta basada en procesos o cuellos de botella'. "
+        "Si recomiendas un bot, especifica el canal y el objetivo.\n"
+        "limitations: 2-3 bullets de lo que NO se automatiza en este rubro. No menciones salud/alimentos si no aplica.\n"
+        "data_needed: 3-5 items de datos/accesos necesarios (ej. inventario, facturacion, CRM, WhatsApp). "
+        "No inventes sistemas que no se mencionan.\n"
         "extra_options: 2-4 opciones adicionales si aplican.\n\n"
         f"Empresa: {payload.company_name}\n"
         f"Industria: {payload.industry}\n"

@@ -112,23 +112,6 @@ def _pick_friction_points(payload: BusinessInput) -> List[str]:
     if not points:
         points.append("Procesos con tiempos muertos y baja visibilidad operativa")
 
-    restricted = [
-        "consultorio",
-        "clinica",
-        "dentista",
-        "medico",
-        "salud",
-        "restaurante",
-        "cocina",
-        "chef",
-        "barberia",
-        "estetica",
-    ]
-    if any(word in text for word in restricted):
-        points.append(
-            "En este rubro la automatizacion se enfoca en tareas administrativas y repetitivas"
-        )
-
     return points
 
 
