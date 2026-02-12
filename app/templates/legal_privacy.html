@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Politica de privacidad | K'an Logic Systems</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="page report legal">
+    <header class="report-header">
+      <div>
+        <p class="pill">Legal</p>
+        <h1>Politica de privacidad</h1>
+        <p class="lead">Como tratamos tu informacion cuando usas nuestro diagnostico y onboarding.</p>
+      </div>
+      <a class="ghost" href="/">Inicio</a>
+    </header>
+
+    <section class="card">
+      <h3>1) Que datos recopilamos</h3>
+      <ul>
+        <li><strong>Datos del negocio</strong>: giro/industria, region, descripcion de procesos, cuellos de botella, herramientas.</li>
+        <li><strong>Datos de contacto</strong> (si los proporcionas): correo, canal preferido.</li>
+        <li><strong>Preferencias</strong>: modulos seleccionados, tipo de bot, forma de entrega (WhatsApp/PDF/email).</li>
+        <li><strong>Accesos tecnicos</strong> (solo si decides implementacion): tokens/API keys/IDs necesarios para conectar sistemas (ej. WhatsApp/Meta/CRM).</li>
+        <li><strong>Datos tecnicos</strong>: logs minimos para diagnosticar errores (fecha/hora, endpoint, tipo de error).</li>
+      </ul>
+      <p class="meta">
+        Recomendacion: comparte accesos con <strong>usuarios tecnicos</strong> y permisos limitados; evita contrasenas personales.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3>2) Para que los usamos</h3>
+      <ul>
+        <li>Generar tu auditoria IA (fricciones, ROI estimado, modulos sugeridos y plan de trabajo).</li>
+        <li>Preparar la implementacion (conectar integraciones, validar tokens y armar flujos en n8n).</li>
+        <li>Darte acceso al portal para seguimiento (estatus, entregables y configuraciones).</li>
+        <li>Soporte y mejora del servicio (correccion de fallas y optimizacion del flujo).</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>3) Terceros y APIs</h3>
+      <p class="meta">
+        Para automatizar, a veces conectamos servicios de terceros (por ejemplo Meta/WhatsApp, CRMs, ERPs, email, n8n).
+        Cada proveedor tiene sus propias politicas. Solo enviamos lo necesario para que el flujo funcione.
+      </p>
+      <ul>
+        <li><strong>Meta/WhatsApp/Messenger</strong>: para mensajeria y webhooks (si lo solicitas).</li>
+        <li><strong>Herramientas internas</strong> (n8n): orquestacion de flujos y automatizaciones.</li>
+        <li><strong>LLM (opcional)</strong>: si activas analisis con IA, parte del texto se envia al modelo para generar recomendaciones.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>4) Almacenamiento y retencion</h3>
+      <p class="meta">
+        Guardamos la informacion en una base de datos para poder generar el reporte, habilitar el onboarding y dar seguimiento.
+        Conservamos datos el tiempo necesario para operar el servicio y/o segun lo que se acuerde en la implementacion.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3>5) Seguridad</h3>
+      <ul>
+        <li>Recomendamos usar tokens revocables y permisos minimos.</li>
+        <li>El portal usa sesiones seguras; no compartas tu acceso con terceros.</li>
+        <li>Puedes solicitar eliminacion de datos en cualquier momento.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>6) Derechos y contacto</h3>
+      <p class="meta">
+        Para dudas, correccion o eliminacion de datos escribe a <strong>{{ support_email }}</strong>.
+        Incluye tu empresa y, si lo tienes, tu folio.
+      </p>
+      <p class="meta">Ver tambien: <a href="/data-deletion">Eliminacion de datos</a>.</p>
+    </section>
+
+    <footer class="site-footer">
+      <span>© 2026 K'an Logic Systems</span>
+      <span class="footer-links">
+        <a href="/privacy">Privacidad</a>
+        <a href="/terms">Terminos</a>
+        <a href="/data-deletion">Eliminacion de datos</a>
+      </span>
+    </footer>
+  </main>
+</body>
+</html>
+

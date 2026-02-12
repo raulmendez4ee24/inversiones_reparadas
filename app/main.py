@@ -732,3 +732,39 @@ async def portal_logout(request: Request):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy(request: Request):
+    support_email = os.getenv("SUPPORT_EMAIL", "soporte@kanlogicsystems.com")
+    return templates.TemplateResponse(
+        "legal_privacy.html",
+        {
+            "request": request,
+            "support_email": support_email,
+        },
+    )
+
+
+@app.get("/terms", response_class=HTMLResponse)
+async def terms(request: Request):
+    support_email = os.getenv("SUPPORT_EMAIL", "soporte@kanlogicsystems.com")
+    return templates.TemplateResponse(
+        "legal_terms.html",
+        {
+            "request": request,
+            "support_email": support_email,
+        },
+    )
+
+
+@app.get("/data-deletion", response_class=HTMLResponse)
+async def data_deletion(request: Request):
+    support_email = os.getenv("SUPPORT_EMAIL", "soporte@kanlogicsystems.com")
+    return templates.TemplateResponse(
+        "legal_data_deletion.html",
+        {
+            "request": request,
+            "support_email": support_email,
+        },
+    )

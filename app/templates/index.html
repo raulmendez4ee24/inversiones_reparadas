@@ -49,81 +49,291 @@
         <p>Describe tu operacion y recibe una propuesta automatica.</p>
       </div>
       <form class="diagnostic-form" method="post" action="/diagnose">
-        <div class="grid">
-          <label>
-            Empresa
-            <input type="text" name="company_name" placeholder="Ej. Textiles Orion" required />
-          </label>
-          <label>
-            Industria
-            <input type="text" name="industry" placeholder="Ej. Retail, Logistica" required />
-          </label>
-          <label>
-            A que se dedica
-            <input type="text" name="business_focus" placeholder="Ej. Consultorio dental, restaurante, taller mecanico" required />
-          </label>
-          <label>
-            Region
-            <input type="text" name="region" placeholder="Ej. Mexico" value="LATAM" />
-          </label>
-          <label>
-            Tamano del equipo actual
-            <input type="number" name="team_size" min="1" placeholder="25" required />
-          </label>
-          <label>
-            Tamano de equipo objetivo (opcional)
-            <input type="number" name="team_size_target" min="1" placeholder="18" />
-          </label>
-          <label>
-            Todo el equipo hace lo mismo?
-            <select name="team_focus_same">
-              <option value="">Selecciona una opcion</option>
-              <option value="si">Si</option>
-              <option value="no">No</option>
-            </select>
-          </label>
-          <label>
-            Costo por dia promedio (MXN)
-            <input type="number" name="avg_daily_cost_mxn" min="100" step="10" placeholder="200" required />
-          </label>
-          <label>
-            Dias promedio/semana
-            <input type="number" name="manual_days_per_week" min="0" step="0.5" placeholder="4" required />
-          </label>
+        <div class="stepper" data-steps="4">
+          <div class="stepper-header">
+            <div>
+              <p class="pill mini">Diagnostico express</p>
+              <h3>Te toma 2-3 minutos</h3>
+            </div>
+            <div class="mini-actions">
+              <button type="button" class="mini-btn js-load-example">Cargar ejemplo</button>
+              <span class="mini-note">Guardamos tu progreso</span>
+              <div class="stepper-counter">
+                Paso <span class="step-current">1</span> de <span class="step-total">4</span>
+              </div>
+            </div>
+          </div>
+          <div class="stepper-track">
+            <div class="stepper-progress"></div>
+          </div>
+          <div class="stepper-labels">
+            <span class="step-label active">Perfil</span>
+            <span class="step-label">Equipo</span>
+            <span class="step-label">Operacion</span>
+            <span class="step-label">Objetivo</span>
+          </div>
         </div>
-        <label>
-          Areas o roles del equipo (opcional)
-          <textarea name="team_roles" rows="2" placeholder="Ej. 4 ventas, 3 admin, 2 soporte, 1 operaciones"></textarea>
-        </label>
-        <label>
-          Procesos actuales
-          <textarea name="processes" rows="3" placeholder="Ventas, inventario, reportes, soporte, envios, facturacion..." required></textarea>
-        </label>
-        <label>
-          Principales cuellos de botella
-          <textarea name="bottlenecks" rows="3" placeholder="Retrasos en facturacion, errores en conciliacion, respuestas tardias, tareas duplicadas..." required></textarea>
-        </label>
-        <label>
-          Sistemas y herramientas
-          <textarea name="systems" rows="2" placeholder="ERP, Excel, WhatsApp, Shopify, Odoo, Google Sheets" required></textarea>
-        </label>
-        <label>
-          Objetivo principal
-          <textarea name="goals" rows="2" placeholder="Reducir costos, aumentar conversion, acelerar respuestas" required></textarea>
-        </label>
-        <div class="grid">
+
+        <section class="form-step active" data-step="1">
+          <h4>Perfil del negocio</h4>
+          <div class="grid">
+            <label>
+              Empresa
+              <input type="text" name="company_name" placeholder="Ej. Textiles Orion" required />
+            </label>
+            <label>
+              Industria
+              <input type="text" name="industry" placeholder="Ej. Retail, Logistica" required />
+            </label>
+            <label>
+              A que se dedica
+              <input type="text" name="business_focus" placeholder="Ej. Consultorio dental, restaurante, taller mecanico" required />
+            </label>
+            <label>
+              Region
+              <input type="text" name="region" placeholder="Ej. Mexico" value="LATAM" />
+            </label>
+          </div>
+        </section>
+
+        <section class="form-step" data-step="2">
+          <h4>Equipo y costo</h4>
+          <div class="grid">
+            <label>
+              Tamano del equipo actual
+              <input type="number" name="team_size" min="1" placeholder="25" required />
+            </label>
+            <label>
+              Tamano de equipo objetivo (opcional)
+              <input type="number" name="team_size_target" min="1" placeholder="18" />
+            </label>
+            <label>
+              Todo el equipo hace lo mismo?
+              <select name="team_focus_same">
+                <option value="">Selecciona una opcion</option>
+                <option value="si">Si</option>
+                <option value="no">No</option>
+              </select>
+            </label>
+            <label>
+              Costo por dia promedio (MXN)
+              <input type="number" name="avg_daily_cost_mxn" min="100" step="10" placeholder="200" required />
+            </label>
+            <label>
+              Dias promedio/semana
+              <input type="number" name="manual_days_per_week" min="0" step="0.5" placeholder="4" required />
+            </label>
+          </div>
           <label>
-            Rango de presupuesto (opcional, MXN)
-            <input type="text" name="budget_range" placeholder="$10,000 - $80,000 MXN" />
+            Areas o roles del equipo (opcional)
+            <textarea name="team_roles" rows="2" placeholder="Ej. 4 ventas, 3 admin, 2 soporte, 1 operaciones"></textarea>
+          </label>
+        </section>
+
+        <section class="form-step" data-step="3">
+          <h4>Operacion actual</h4>
+          <label>
+            Procesos actuales
+            <textarea name="processes" rows="3" placeholder="Ventas, inventario, reportes, soporte, envios, facturacion..." required></textarea>
           </label>
           <label>
-            Email de contacto (opcional)
-            <input type="email" name="contact_email" placeholder="tu@empresa.com" />
+            Principales cuellos de botella
+            <textarea name="bottlenecks" rows="3" placeholder="Retrasos en facturacion, errores en conciliacion, respuestas tardias, tareas duplicadas..." required></textarea>
           </label>
+          <label>
+            Sistemas y herramientas
+            <textarea name="systems" rows="2" placeholder="ERP, Excel, WhatsApp, Shopify, Odoo, Google Sheets" required></textarea>
+          </label>
+        </section>
+
+        <section class="form-step" data-step="4">
+          <h4>Objetivo y contacto</h4>
+          <label>
+            Objetivo principal
+            <textarea name="goals" rows="2" placeholder="Reducir costos, aumentar conversion, acelerar respuestas" required></textarea>
+          </label>
+          <div class="grid">
+            <label>
+              Rango de presupuesto (opcional, MXN)
+              <input type="text" name="budget_range" placeholder="$10,000 - $80,000 MXN" />
+            </label>
+            <label>
+              Email de contacto (opcional)
+              <input type="email" name="contact_email" placeholder="tu@empresa.com" />
+            </label>
+          </div>
+        </section>
+
+        <div class="step-actions">
+          <button type="button" class="ghost-btn step-prev">Atras</button>
+          <button type="button" class="step-next">Siguiente</button>
+          <button type="submit" class="step-submit">Generar auditoria IA</button>
         </div>
-        <button type="submit">Generar auditoria IA</button>
       </form>
     </section>
+
+    <footer class="site-footer">
+      <span>© 2026 K'an Logic Systems</span>
+      <span class="footer-links">
+        <a href="/privacy">Privacidad</a>
+        <a href="/terms">Terminos</a>
+        <a href="/data-deletion">Eliminacion de datos</a>
+      </span>
+    </footer>
   </main>
+  <script>
+    const form = document.querySelector(".diagnostic-form");
+    if (form) {
+      const steps = Array.from(form.querySelectorAll(".form-step"));
+      const labels = Array.from(form.querySelectorAll(".step-label"));
+      const progress = form.querySelector(".stepper-progress");
+      const currentEl = form.querySelector(".step-current");
+      const totalEl = form.querySelector(".step-total");
+      const prevBtn = form.querySelector(".step-prev");
+      const nextBtn = form.querySelector(".step-next");
+      const submitBtn = form.querySelector(".step-submit");
+      const exampleBtn = form.querySelector(".js-load-example");
+      const fields = Array.from(form.querySelectorAll("input, textarea, select"));
+      fields.forEach((field) => {
+        if (field.required) {
+          field.dataset.required = "1";
+        }
+      });
+
+      const storageKey = "kan_diagnostic_v1";
+      const persist = () => {
+        const data = {};
+        fields.forEach((field) => {
+          if (!field.name) return;
+          if (field.type === "password") return;
+          data[field.name] = field.value;
+        });
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(data));
+        } catch (err) {
+          // ignore (private mode / storage disabled)
+        }
+      };
+
+      const restore = () => {
+        try {
+          const raw = localStorage.getItem(storageKey);
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          fields.forEach((field) => {
+            if (!field.name) return;
+            if (typeof data[field.name] !== "string") return;
+            if (field.value) return;
+            field.value = data[field.name];
+          });
+        } catch (err) {
+          // ignore
+        }
+      };
+
+      const loadExample = () => {
+        const example = {
+          company_name: "Tienda La Esquina",
+          industry: "Retail",
+          business_focus: "Venta de abarrotes y productos de consumo",
+          region: "Mexico",
+          team_size: "8",
+          team_size_target: "6",
+          team_focus_same: "false",
+          team_roles: "4 ventas, 2 admin, 2 soporte",
+          avg_daily_cost_mxn: "450",
+          manual_days_per_week: "5",
+          processes: "ventas, inventario, reportes, compras",
+          bottlenecks: "inventario desactualizado, facturacion lenta, reportes manuales",
+          systems: "Excel, WhatsApp, Punto de venta, Google Sheets",
+          goals: "reducir tiempos y errores, mejorar conversion y seguimiento",
+          budget_range: "$10,000 - $60,000 MXN",
+        };
+        fields.forEach((field) => {
+          if (!field.name) return;
+          if (field.name in example) field.value = example[field.name];
+        });
+        persist();
+      };
+
+      let index = 0;
+      const total = steps.length;
+      if (totalEl) totalEl.textContent = String(total);
+
+      const updateRequired = () => {
+        steps.forEach((step, idx) => {
+          const active = idx === index;
+          step.querySelectorAll("input, textarea, select").forEach((field) => {
+            if (field.dataset.required === "1") {
+              field.required = active;
+            }
+          });
+        });
+      };
+
+      const updateUI = () => {
+        steps.forEach((step, idx) => step.classList.toggle("active", idx === index));
+        labels.forEach((label, idx) => label.classList.toggle("active", idx === index));
+        if (currentEl) currentEl.textContent = String(index + 1);
+        if (progress) {
+          const pct = total === 1 ? 100 : (index / (total - 1)) * 100;
+          progress.style.width = `${pct}%`;
+        }
+        prevBtn.disabled = index === 0;
+        prevBtn.style.opacity = index === 0 ? "0.5" : "1";
+        nextBtn.style.display = index === total - 1 ? "none" : "inline-flex";
+        submitBtn.style.display = index === total - 1 ? "inline-flex" : "none";
+        updateRequired();
+      };
+
+      const validateStep = () => {
+        const currentFields = Array.from(steps[index].querySelectorAll("input, textarea, select"));
+        for (const field of currentFields) {
+          if (!field.checkValidity()) {
+            field.reportValidity();
+            return false;
+          }
+        }
+        return true;
+      };
+
+      prevBtn.addEventListener("click", () => {
+        index = Math.max(0, index - 1);
+        updateUI();
+      });
+
+      nextBtn.addEventListener("click", () => {
+        if (!validateStep()) return;
+        index = Math.min(total - 1, index + 1);
+        updateUI();
+      });
+
+      if (exampleBtn) {
+        exampleBtn.addEventListener("click", () => {
+          loadExample();
+        });
+      }
+
+      fields.forEach((field) => {
+        field.addEventListener("input", () => {
+          persist();
+        });
+        field.addEventListener("change", () => {
+          persist();
+        });
+      });
+
+      form.addEventListener("submit", () => {
+        try {
+          localStorage.removeItem(storageKey);
+        } catch (err) {
+          // ignore
+        }
+      });
+
+      restore();
+      updateUI();
+    }
+  </script>
 </body>
 </html>
