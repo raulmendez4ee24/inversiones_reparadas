@@ -83,14 +83,73 @@
         <h3>Auditoria IA completa</h3>
         <p>Diagnostico, roadmap y propuesta por fases.</p>
       </a>
-      <a class="offer-item" href="#diagnostico">
+      <a class="offer-item" href="#quick-order" data-quick-offer="chatbot_whatsapp">
         <h3>Chatbot express WhatsApp</h3>
         <p>FAQ + respuestas rapidas desde <strong>$2,000 MXN</strong>.</p>
       </a>
-      <a class="offer-item" href="#diagnostico">
+      <a class="offer-item" href="#quick-order" data-quick-offer="agenda_chatbot">
         <h3>Agenda con WhatsApp</h3>
         <p>Citas, recordatorios y confirmaciones desde <strong>$2,500 MXN</strong>.</p>
       </a>
+    </section>
+
+    <section class="quick-order card" id="quick-order">
+      <div class="section-title">
+        <h2>Compra rapida: chatbot y agenda sin cotizacion completa</h2>
+        <p>
+          Si hoy solo quieres algo puntual, pide aqui tu implementacion express.
+          Te llevamos directo a activacion y pago.
+        </p>
+      </div>
+
+      <div class="quick-offer-grid">
+        <article class="quick-offer-card active" data-offer="chatbot_whatsapp" aria-selected="true">
+          <p class="pill mini">Express</p>
+          <h3>Chatbot basico para WhatsApp</h3>
+          <p>Respuestas rapidas, FAQ y captura de contacto para no perder mensajes.</p>
+          <strong>$2,000 - $3,000 MXN</strong>
+        </article>
+        <article class="quick-offer-card" data-offer="agenda_chatbot" aria-selected="false">
+          <p class="pill mini">Express</p>
+          <h3>Agenda + chatbot por WhatsApp</h3>
+          <p>Confirmacion de citas, recordatorios automaticos y control simple de disponibilidad.</p>
+          <strong>$2,500 - $4,500 MXN</strong>
+        </article>
+      </div>
+
+      <form class="quick-order-form" method="post" action="/quick-start">
+        <div class="grid">
+          <label>
+            Solucion express
+            <select name="quick_offer" required>
+              <option value="chatbot_whatsapp" selected>Chatbot basico para WhatsApp ($2,000 - $3,000)</option>
+              <option value="agenda_chatbot">Agenda + chatbot por WhatsApp ($2,500 - $4,500)</option>
+            </select>
+          </label>
+          <label>
+            Nombre del negocio
+            <input type="text" name="company_name" placeholder="Ej. Tienda La Esquina" required />
+          </label>
+          <label>
+            Correo de contacto
+            <input type="email" name="contact_email" placeholder="tu@empresa.com" required />
+          </label>
+          <label>
+            WhatsApp (opcional)
+            <input type="text" name="contact_whatsapp" placeholder="Ej. +52 55 1234 5678" />
+          </label>
+        </div>
+
+        <label class="consent">
+          <input type="checkbox" name="consent_contact" required />
+          <span>Acepto recibir contacto para activar esta solucion express.</span>
+        </label>
+
+        <div class="quick-order-actions">
+          <button type="submit">Quiero implementacion express</button>
+          <a class="ghost" href="#diagnostico">Prefiero auditoria completa</a>
+        </div>
+      </form>
     </section>
 
     <section class="impact-ribbon">
@@ -412,6 +471,39 @@
     </footer>
   </main>
   <script>
+    const quickOfferSelect = document.querySelector('select[name="quick_offer"]');
+    const quickOfferCards = Array.from(document.querySelectorAll(".quick-offer-card"));
+    const quickOfferTriggers = Array.from(document.querySelectorAll("[data-quick-offer]"));
+
+    const setQuickOffer = (offer) => {
+      if (!quickOfferSelect) return;
+      const selected = offer === "agenda_chatbot" ? "agenda_chatbot" : "chatbot_whatsapp";
+      quickOfferSelect.value = selected;
+      quickOfferCards.forEach((card) => {
+        const active = card.dataset.offer === selected;
+        card.classList.toggle("active", active);
+        card.setAttribute("aria-selected", active ? "true" : "false");
+      });
+    };
+
+    if (quickOfferSelect) {
+      quickOfferTriggers.forEach((trigger) => {
+        trigger.addEventListener("click", () => {
+          setQuickOffer(trigger.dataset.quickOffer || "chatbot_whatsapp");
+        });
+      });
+      quickOfferCards.forEach((card) => {
+        card.addEventListener("click", () => {
+          setQuickOffer(card.dataset.offer || "chatbot_whatsapp");
+          quickOfferSelect.focus();
+        });
+      });
+      quickOfferSelect.addEventListener("change", () => {
+        setQuickOffer(quickOfferSelect.value);
+      });
+      setQuickOffer(quickOfferSelect.value || "chatbot_whatsapp");
+    }
+
     const form = document.querySelector(".diagnostic-form");
     if (form) {
       const steps = Array.from(form.querySelectorAll(".form-step"));

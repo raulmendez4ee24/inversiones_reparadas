@@ -170,6 +170,68 @@ def _payment_url_for_method(
     )
 
 
+def _build_quick_payload(
+    quick_offer: str,
+    company_name: str,
+    contact_email: str,
+    contact_whatsapp: str,
+) -> BusinessInput:
+    offer_key = (quick_offer or "").strip().lower()
+    if offer_key not in {"chatbot_whatsapp", "agenda_chatbot"}:
+        offer_key = "chatbot_whatsapp"
+
+    company = (company_name or "").strip() or "Negocio local"
+    email = (contact_email or "").strip() or None
+    whatsapp = (contact_whatsapp or "").strip() or None
+
+    if offer_key == "agenda_chatbot":
+        return BusinessInput(
+            company_name=company,
+            industry="Servicios",
+            business_focus="Agenda y confirmacion de citas por WhatsApp",
+            region="Mexico",
+            team_size=1,
+            employee_band="1-5",
+            transaction_volume="bajo",
+            tooling_level="solo_whatsapp",
+            manual_hours_per_week=6,
+            selected_modules=["whatsapp_ventas", "eficiencia_administrativa"],
+            processes="agenda, citas, confirmaciones y recordatorios",
+            bottlenecks=(
+                "Confirmamos citas manualmente por chat y se pierden espacios "
+                "por falta de recordatorios automaticos."
+            ),
+            systems="WhatsApp",
+            goals="Automatizar agenda, confirmaciones y seguimiento por WhatsApp.",
+            budget_range="$2,500 - $4,500 MXN",
+            contact_email=email,
+            contact_whatsapp=whatsapp,
+        )
+
+    return BusinessInput(
+        company_name=company,
+        industry="Comercio",
+        business_focus="Atencion y ventas por WhatsApp con chatbot basico",
+        region="Mexico",
+        team_size=1,
+        employee_band="1-5",
+        transaction_volume="bajo",
+        tooling_level="solo_whatsapp",
+        manual_hours_per_week=6,
+        selected_modules=["whatsapp_ventas"],
+        processes="mensajes entrantes, FAQ y seguimiento de prospectos",
+        bottlenecks=(
+            "Responder mensajes manualmente quita tiempo y provoca "
+            "que algunos prospectos se pierdan sin seguimiento."
+        ),
+        systems="WhatsApp",
+        goals="Activar chatbot rapido para responder FAQ y captar datos de contacto.",
+        budget_range="$2,000 - $3,000 MXN",
+        contact_email=email,
+        contact_whatsapp=whatsapp,
+    )
+
+
 class AIReplyRequest(BaseModel):
     message: str
     channel: str | None = None
@@ -214,6 +276,29 @@ async def ai_health():
     else:
         code = 503
     return JSONResponse(status, status_code=code)
+
+
+@app.post("/quick-start")
+async def quick_start(
+    quick_offer: str = Form("chatbot_whatsapp"),
+    company_name: str = Form(...),
+    contact_email: str = Form(...),
+    contact_whatsapp: str = Form(""),
+    consent_contact: str = Form(""),
+):
+    if consent_contact not in ("1", "true", "on", "si", "yes"):
+        return RedirectResponse(url="/#quick-order", status_code=303)
+
+    payload = _build_quick_payload(
+        quick_offer=quick_offer,
+        company_name=company_name,
+        contact_email=contact_email,
+        contact_whatsapp=contact_whatsapp,
+    )
+    output = run_analysis(payload)
+    lead_id, _ = save_lead(DB_PATH, payload, output)
+
+    return RedirectResponse(url=f"/onboarding/{lead_id}", status_code=303)
 
 
 @app.get("/", response_class=HTMLResponse)
