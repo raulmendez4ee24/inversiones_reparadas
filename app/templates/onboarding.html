@@ -118,12 +118,12 @@
             </label>
           </div>
           <label class="consent">
-            <input type="checkbox" name="marketing_opt_in" />
-            <span>Acepto recibir comunicados, novedades y promociones relacionadas.</span>
+            <input type="checkbox" name="marketing_opt_in" id="marketing-opt-in" />
+            <span>Acepto recibir comunicados, novedades y promociones relacionadas (opcional).</span>
           </label>
           <label>
-            Canal preferido
-            <select name="marketing_channel">
+            Canal preferido (solo si activas comunicados)
+            <select name="marketing_channel" id="marketing-channel" disabled>
               <option value="">Selecciona una opcion</option>
               <option value="email">Email</option>
               <option value="whatsapp">WhatsApp</option>
@@ -208,13 +208,14 @@
 
           <div class="founder-actions">
             {% if founder and (founder.calendar_url or founder.whatsapp) %}
-              <a class="button-link" href="/agenda?lead_id={{ lead_id }}&company={{ payload.company_name | urlencode }}&source=onboarding">Agendar por calendario</a>
+              <a class="button-link" href="/agenda?lead_id={{ lead_id }}&company={{ payload.company_name | urlencode }}&source=onboarding" target="_blank" rel="noopener noreferrer">Agendar sesion (nueva pestana)</a>
             {% endif %}
             {% if founder and founder.whatsapp %}
               {% set wa_text = ("Hola, quiero agendar mi sesion de activacion. Folio " ~ lead_id ~ " (" ~ payload.company_name ~ ")") %}
               <a class="mini-btn" href="https://wa.me/{{ founder.whatsapp | replace('+','') | replace(' ','') }}?text={{ wa_text | urlencode }}" target="_blank" rel="noopener">Agendar por WhatsApp</a>
             {% endif %}
           </div>
+          <p class="meta">La agenda se abre en otra pestana. Regresa aqui para continuar al paso de pago.</p>
 
           <div class="meta">
             <strong>Que pasa en la sesion</strong>
@@ -331,6 +332,19 @@
     refreshAccess();
 
     if (form) {
+      const marketingOptIn = form.querySelector("#marketing-opt-in");
+      const marketingChannel = form.querySelector("#marketing-channel");
+
+      const syncMarketingChannel = () => {
+        if (!marketingChannel) return;
+        const enabled = !!(marketingOptIn && marketingOptIn.checked);
+        marketingChannel.disabled = !enabled;
+        if (!enabled) marketingChannel.value = "";
+      };
+
+      marketingOptIn?.addEventListener("change", syncMarketingChannel);
+      syncMarketingChannel();
+
       const steps = Array.from(form.querySelectorAll(".form-step"));
       const labels = Array.from(form.querySelectorAll(".step-label"));
       const progress = form.querySelector(".stepper-progress");

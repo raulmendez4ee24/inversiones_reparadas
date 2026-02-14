@@ -33,7 +33,7 @@
             <a class="ghost" href="https://wa.me/{{ founder.whatsapp | replace('+','') | replace(' ','') }}" target="_blank" rel="noreferrer">WhatsApp directo</a>
           {% endif %}
           {% if founder.calendar_url or founder.whatsapp %}
-            <a class="ghost" href="/agenda?source=founder" rel="noreferrer">Agendar 15 min</a>
+            <a class="ghost" href="/agenda?source=founder" target="_blank" rel="noreferrer noopener">Agendar 15 min</a>
           {% endif %}
           <a class="button-link" href="/#diagnostico">Diagnostico IA</a>
         </div>
@@ -101,7 +101,7 @@
         <div class="founder-actions">
           <a class="button-link" href="/#diagnostico">Comenzar auditoria</a>
           {% if founder.calendar_url or founder.whatsapp %}
-          <a class="ghost" href="/agenda?source=founder_cta" rel="noreferrer">Agendar 15 min</a>
+          <a class="ghost" href="/agenda?source=founder_cta" target="_blank" rel="noreferrer noopener">Agendar 15 min</a>
           {% endif %}
         </div>
       </article>
