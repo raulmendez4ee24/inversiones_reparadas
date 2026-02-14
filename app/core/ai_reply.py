@@ -1,28 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import Any, Dict
 
-import httpx
-
-
-def _extract_output_text(data: dict) -> str:
-    output_text = data.get("output_text")
-    if isinstance(output_text, str) and output_text.strip():
-        return output_text.strip()
-
-    for item in data.get("output", []) or []:
-        for part in item.get("content", []) or []:
-            text = part.get("text")
-            if isinstance(text, str) and text.strip():
-                return text.strip()
-    return ""
+from .gemini_client import generate_content
 
 
 async def generate_ai_reply(message: str, context: Dict[str, Any]) -> str:
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    model = os.getenv("OPENAI_MODEL", "gpt-5").strip()
-    base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").strip().rstrip("/")
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not api_key:
         return "Gracias por tu mensaje. En breve te atendemos con un asesor."
@@ -40,22 +26,12 @@ async def generate_ai_reply(message: str, context: Dict[str, Any]) -> str:
     )
 
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.post(
-                f"{base_url}/responses",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model or "gpt-5",
-                    "input": prompt,
-                    "max_output_tokens": 180,
-                },
-            )
-        response.raise_for_status()
-        data = response.json()
-        text = _extract_output_text(data)
+        text, _, _ = await asyncio.to_thread(
+            generate_content,
+            prompt,
+            180,
+            0.2,
+        )
         return text or "Gracias por tu mensaje. En breve te atendemos."
-    except httpx.HTTPError:
+    except Exception:
         return "Gracias por tu mensaje. En breve te atendemos."

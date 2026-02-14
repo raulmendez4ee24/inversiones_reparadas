@@ -19,6 +19,8 @@
       </div>
     </header>
 
+    {% set jornadas_mes = (output.roi_hours_saved_per_month / 8) if output.roi_hours_saved_per_month else 0 %}
+
     <section class="report-grid">
       <article class="card">
         <h3>Resumen</h3>
@@ -27,14 +29,22 @@
         <p class="meta">Equipo: {{ payload.team_size }}</p>
       </article>
       <article class="card">
-        <h3>Retorno estimado</h3>
+        <h3>Ganancia proyectada</h3>
         <div class="kpi">
-          <span>Horas recuperadas/mes</span>
-          <strong>{{ output.roi_hours_saved_per_month }}</strong>
+          <span>Jornadas completas/mes (8h)</span>
+          <strong>{{ jornadas_mes | round(1) }}</strong>
         </div>
         <div class="kpi">
-          <span>MXN recuperados/mes</span>
-          <strong>{{ output.roi_mxn_saved_per_month }}</strong>
+          <span>Ganancia mensual (estimada)</span>
+          <strong>${{ output.roi_mxn_saved_per_month | round(0) }} MXN</strong>
+        </div>
+        <div class="kpi">
+          <span>Ahorro por errores evitados (estimado)</span>
+          <strong>${{ output.roi_error_savings_mxn_per_month | round(0) }} MXN/mes</strong>
+        </div>
+        <div class="kpi">
+          <span>Potencial extra en ventas (oportunidad)</span>
+          <strong>${{ output.roi_opportunity_mxn_per_month | round(0) }} MXN/mes</strong>
         </div>
       </article>
       <article class="card">

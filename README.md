@@ -5,7 +5,7 @@ Prototipo web para generar auditorias IA, ROI estimado y cotizacion automatica.
 ## Como correrlo (local)
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
@@ -24,15 +24,13 @@ Abre `http://127.0.0.1:8000`.
   "business_focus": "Ventas de ropa al mayoreo",
   "region": "Mexico",
   "team_size": 25,
-  "team_size_target": 18,
-  "team_focus_same": false,
   "team_roles": "10 ventas, 8 admin, 7 soporte",
-  "avg_daily_cost_mxn": 600,
-  "manual_days_per_week": 4,
+  "manual_hours_per_week": 12,
+  "selected_modules": ["whatsapp_ventas", "inventarios_datos"],
+  "bottlenecks": "responder mensajes, capturar pedidos y actualizar inventario manualmente",
   "processes": "ventas, inventario, reportes",
-  "bottlenecks": "facturacion lenta y conciliacion manual",
   "systems": "ERP, Excel, WhatsApp",
-  "goals": "reducir costos y mejorar conversion"
+  "goals": "vender mas y responder mas rapido"
 }
 ```
 
@@ -42,13 +40,20 @@ Abre `http://127.0.0.1:8000`.
 - Logica de ROI y cotizacion: `app/core/analysis.py` y `app/core/pricing.py`
 - Integrar LLM: reemplaza `app/core/llm.py`
 
-## Analisis con GPT-5 (opcional)
+## Analisis con Gemini (opcional)
 
-Configura tu API key para activar el analisis por GPT-5:
+Configura Gemini para personalizar diagnostico y respuestas de chatbot:
 
 ```bash
-export OPENAI_API_KEY="tu_api_key"
-export OPENAI_MODEL="gpt-5"
+export GEMINI_API_KEY="tu_api_key"
+export GEMINI_MODEL="gemini-2.0-flash"
+export GEMINI_BASE_URL="https://generativelanguage.googleapis.com/v1beta"
+```
+
+Para verificar si la API quedo conectada:
+
+```bash
+curl http://127.0.0.1:8000/api/health/ai
 ```
 
 ## Handoff a automatizacion (n8n)
@@ -93,8 +98,24 @@ export META_SCOPES="pages_show_list,pages_manage_metadata,pages_messaging,whatsa
 ## Onboarding de accesos
 
 1) Genera el diagnostico y presiona **Implementar ahora**.
-2) Selecciona modulos, agrega accesos y envia a implementacion.
+2) Agenda tu sesion de Activacion (15 min) para conectar cuentas de forma segura.
 3) La solicitud se guarda en `data/leads.db` (tabla `projects`).
+
+## Pago (checkout)
+
+Configura links de pago para que el flujo termine directo en checkout:
+
+```bash
+export PAYMENT_URL_CARD="https://tu-checkout.com/tarjeta?lead={lead_id}&project={project_id}&company={company_name}"
+export PAYMENT_URL_TRANSFER="https://tu-checkout.com/transferencia?lead={lead_id}&project={project_id}&company={company_name}"
+export PAYMENT_URL_DEFAULT="https://tu-checkout.com/default?lead={lead_id}&project={project_id}"
+```
+
+Tokens disponibles en el URL:
+- `{lead_id}`
+- `{project_id}`
+- `{company_name}`
+- `{payment_method}`
 
 ## Portal del cliente (login)
 
@@ -103,3 +124,36 @@ Para mantener sesiones seguras en el portal:
 ```bash
 export SESSION_SECRET="tu_clave_larga"
 ```
+
+## Cifrado de datos sensibles (recomendado)
+
+Para guardar tokens/API keys de forma segura (Meta OAuth y accesos en onboarding), configura una llave de cifrado:
+
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+export DATA_ENCRYPTION_KEY="PEGA_AQUI_LA_LLAVE_GENERADA"
+```
+
+Sin `DATA_ENCRYPTION_KEY`, el sistema no guardara accesos sensibles en la base de datos.
+
+## Founder Presence (confianza)
+
+La landing incluye seccion "Sobre el Arquitecto" y badges de tecnologia. Personaliza con variables:
+
+```bash
+export SUPPORT_EMAIL="soporte@tu-dominio.com"
+export FOUNDER_NAME="Tu Nombre"
+export FOUNDER_ROLE="Arquitecto de automatizacion"
+export FOUNDER_HEADLINE="No construyo para que las cosas funcionen, diseno sistemas robustos para que tu negocio no se detenga."
+export FOUNDER_BIO="K'an disena la infraestructura neuronal de tu PyME. No solo \"recuperamos tiempo\", convertimos tus operaciones manuales en flujos de inteligencia autonoma que trabajan 24/7."
+export FOUNDER_PHOTO_URL="/static/founder.svg"
+export FOUNDER_WHATSAPP="+52 55 1234 5678"
+export FOUNDER_CALENDAR_URL="https://cal.com/tuusuario/15min"
+```
+
+## Paginas legales (Meta)
+
+La app expone:
+- `/privacy`
+- `/terms`
+- `/data-deletion`

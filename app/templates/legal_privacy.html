@@ -23,7 +23,7 @@
         <li><strong>Datos del negocio</strong>: giro/industria, region, descripcion de procesos, cuellos de botella, herramientas.</li>
         <li><strong>Datos de contacto</strong> (si los proporcionas): correo, canal preferido.</li>
         <li><strong>Preferencias</strong>: modulos seleccionados, tipo de bot, forma de entrega (WhatsApp/PDF/email).</li>
-        <li><strong>Accesos tecnicos</strong> (solo si decides implementacion): tokens/API keys/IDs necesarios para conectar sistemas (ej. WhatsApp/Meta/CRM).</li>
+        <li><strong>Autorizaciones de integracion</strong> (solo si decides implementacion): permisos que nos otorgas para conectar sistemas (ej. WhatsApp/Meta/CRM).</li>
         <li><strong>Datos tecnicos</strong>: logs minimos para diagnosticar errores (fecha/hora, endpoint, tipo de error).</li>
       </ul>
       <p class="meta">
@@ -35,7 +35,7 @@
       <h3>2) Para que los usamos</h3>
       <ul>
         <li>Generar tu auditoria IA (fricciones, ROI estimado, modulos sugeridos y plan de trabajo).</li>
-        <li>Preparar la implementacion (conectar integraciones, validar tokens y armar flujos en n8n).</li>
+        <li>Preparar la implementacion (conectar integraciones, validar accesos y armar flujos en n8n).</li>
         <li>Darte acceso al portal para seguimiento (estatus, entregables y configuraciones).</li>
         <li>Soporte y mejora del servicio (correccion de fallas y optimizacion del flujo).</li>
       </ul>
@@ -65,7 +65,8 @@
     <section class="card">
       <h3>5) Seguridad</h3>
       <ul>
-        <li>Recomendamos usar tokens revocables y permisos minimos.</li>
+        <li>Recomendamos usar permisos revocables y el minimo acceso necesario.</li>
+        <li>Los datos sensibles se guardan cifrados en la base de datos; las contrasenas del portal se almacenan hasheadas.</li>
         <li>El portal usa sesiones seguras; no compartas tu acceso con terceros.</li>
         <li>Puedes solicitar eliminacion de datos en cualquier momento.</li>
       </ul>
@@ -91,4 +92,3 @@
   </main>
 </body>
 </html>
-

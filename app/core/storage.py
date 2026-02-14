@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import secrets
 import sqlite3
+import hmac
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 from .models import AnalysisOutput, BusinessInput
+from .crypto import CryptoError, decrypt_json, decrypt_text, encrypt_json, encrypt_text, is_encrypted
 
 HOURS_PER_DAY = 8
 
@@ -54,6 +56,23 @@ def init_db(db_path: Path) -> None:
                 diagnosis_json TEXT NOT NULL
             )
             """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS lead_captures (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                consent_contact INTEGER,
+                source TEXT,
+                user_agent TEXT,
+                ip TEXT
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_lead_captures_email ON lead_captures (email)"
         )
         conn.execute(
             """
@@ -103,12 +122,77 @@ def init_db(db_path: Path) -> None:
         conn.close()
 
 
+def save_lead_capture(
+    db_path: Path,
+    email: str,
+    phone: str | None,
+    consent_contact: bool,
+    source: str | None,
+    user_agent: str | None,
+    ip: str | None,
+) -> int:
+    email_clean = (email or "").strip().lower()
+    if len(email_clean) < 6 or "@" not in email_clean:
+        raise ValueError("Email invalido.")
+
+    phone_clean = (phone or "").strip() or None
+    conn = sqlite3.connect(db_path)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO lead_captures (
+                created_at,
+                email,
+                phone,
+                consent_contact,
+                source,
+                user_agent,
+                ip
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                datetime.now(timezone.utc).isoformat(),
+                email_clean,
+                phone_clean,
+                1 if consent_contact else 0,
+                (source or "").strip() or None,
+                (user_agent or "").strip() or None,
+                (ip or "").strip() or None,
+            ),
+        )
+        conn.commit()
+        return int(cursor.lastrowid)
+    finally:
+        conn.close()
+
+
 def _hash_code(code: str) -> str:
     return sha256(code.encode("utf-8")).hexdigest()
 
 
 def _hash_password(password: str, salt: str) -> str:
     return sha256(f"{salt}{password}".encode("utf-8")).hexdigest()
+
+
+def _hash_password_bcrypt(password: str) -> str:
+    import bcrypt  # local import: optional dependency only used when enabled
+
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12))
+    return hashed.decode("utf-8")
+
+
+def _verify_password_bcrypt(password: str, stored_hash: str) -> bool:
+    import bcrypt  # local import: optional dependency only used when enabled
+
+    try:
+        return bool(bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8")))
+    except ValueError:
+        return False
+
+
+def _password_is_bcrypt(stored_hash: str) -> bool:
+    return stored_hash.startswith("$2a$") or stored_hash.startswith("$2b$") or stored_hash.startswith("$2y$")
 
 
 def _generate_access_code() -> str:
@@ -120,6 +204,15 @@ def save_lead(db_path: Path, payload: BusinessInput, analysis: AnalysisOutput) -
     access_code = _generate_access_code()
     access_code_hash = _hash_code(access_code)
     access_code_hint = access_code[-2:]
+    avg_daily = float(payload.avg_daily_cost_mxn or 0)
+    manual_days = float(payload.manual_days_per_week or 0)
+    manual_hours = float(payload.manual_hours_per_week or (manual_days * HOURS_PER_DAY))
+
+    # Backward compatibility: old DBs may enforce NOT NULL on these legacy columns.
+    avg_daily_db = avg_daily if avg_daily > 0 else 0.0
+    manual_days_db = manual_days if manual_days > 0 else (manual_hours / HOURS_PER_DAY if manual_hours > 0 else 0.0)
+    avg_hourly_db = avg_daily_db / HOURS_PER_DAY
+    manual_hours_db = manual_hours if manual_hours > 0 else (manual_days_db * HOURS_PER_DAY)
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -157,10 +250,10 @@ def save_lead(db_path: Path, payload: BusinessInput, analysis: AnalysisOutput) -
                 payload.region,
                 payload.team_size,
                 payload.team_size_target,
-                payload.avg_daily_cost_mxn,
-                payload.manual_days_per_week,
-                payload.avg_daily_cost_mxn / HOURS_PER_DAY,
-                payload.manual_days_per_week * HOURS_PER_DAY,
+                avg_daily_db,
+                manual_days_db,
+                avg_hourly_db,
+                manual_hours_db,
                 1 if payload.team_focus_same else 0 if payload.team_focus_same is not None else None,
                 payload.team_roles,
                 payload.processes,
@@ -220,12 +313,16 @@ def fetch_lead(db_path: Path, lead_id: int) -> Tuple[BusinessInput, AnalysisOutp
 
     avg_daily_cost_mxn = row["avg_daily_cost_mxn"]
     manual_days_per_week = row["manual_days_per_week"]
+    manual_hours_per_week = row["manual_hours_per_week"]
 
     if avg_daily_cost_mxn is None and row["avg_hourly_cost_usd"] is not None:
         avg_daily_cost_mxn = row["avg_hourly_cost_usd"] * HOURS_PER_DAY
 
     if manual_days_per_week is None and row["manual_hours_per_week"] is not None:
         manual_days_per_week = row["manual_hours_per_week"] / HOURS_PER_DAY
+
+    if manual_hours_per_week is None and manual_days_per_week is not None:
+        manual_hours_per_week = manual_days_per_week * HOURS_PER_DAY
 
     team_focus_same = row["team_focus_same"]
     if team_focus_same is not None:
@@ -240,6 +337,7 @@ def fetch_lead(db_path: Path, lead_id: int) -> Tuple[BusinessInput, AnalysisOutp
         team_size_target=row["team_size_target"],
         team_focus_same=team_focus_same,
         team_roles=row["team_roles"],
+        manual_hours_per_week=manual_hours_per_week or 0,
         avg_daily_cost_mxn=avg_daily_cost_mxn if avg_daily_cost_mxn is not None else 1.0,
         manual_days_per_week=manual_days_per_week or 0,
         processes=row["processes"],
@@ -271,12 +369,11 @@ def update_lead_credentials(
             values.append(email.strip())
 
         if password:
-            salt = secrets.token_hex(8)
-            pwd_hash = _hash_password(password, salt)
+            pwd_hash = _hash_password_bcrypt(password)
             fields.append("password_hash = ?")
             values.append(pwd_hash)
             fields.append("password_salt = ?")
-            values.append(salt)
+            values.append(None)
 
         fields.append("marketing_opt_in = ?")
         values.append(1 if marketing_opt_in else 0)
@@ -349,10 +446,18 @@ def validate_portal_login(
 
     stored_hash = row["password_hash"] or ""
     salt = row["password_salt"] or ""
-    if not stored_hash or not salt:
+    if not stored_hash:
         return False, "Tu cuenta aun no tiene contrasena activada."
 
-    if stored_hash != _hash_password(password.strip(), salt):
+    if _password_is_bcrypt(stored_hash):
+        if not _verify_password_bcrypt(password.strip(), stored_hash):
+            return False, "Contrasena incorrecta."
+        return True, None
+
+    # Legacy: sha256(salt+password) (kept for backward compatibility)
+    if not salt:
+        return False, "Tu cuenta aun no tiene contrasena activada."
+    if not hmac.compare_digest(stored_hash, _hash_password(password.strip(), salt)):
         return False, "Contrasena incorrecta."
 
     return True, None
@@ -378,11 +483,18 @@ def fetch_latest_project(db_path: Path, lead_id: int) -> Dict[str, object] | Non
     if row is None:
         return None
 
+    access_raw = row["access_json"] or ""
+    try:
+        access_json = decrypt_text(access_raw)
+    except CryptoError:
+        # If we cannot decrypt (missing/wrong key), hide sensitive data in portal.
+        access_json = "{}"
+
     return {
         "id": row["id"],
         "status": row["status"],
         "selected_modules": json.loads(row["selected_modules_json"]) if row["selected_modules_json"] else [],
-        "access": json.loads(row["access_json"]) if row["access_json"] else {},
+        "access": json.loads(access_json) if access_json else {},
         "notes": row["notes"],
         "created_at": row["created_at"],
     }
@@ -396,6 +508,13 @@ def save_project(
     notes: str,
     status: str,
 ) -> int:
+    access_blob = json.dumps(access_payload, ensure_ascii=False)
+    if access_blob.strip() not in ("", "{}", "null"):
+        try:
+            access_blob = encrypt_text(access_blob)
+        except CryptoError as exc:
+            raise ValueError(str(exc)) from exc
+
     conn = sqlite3.connect(db_path)
     try:
         cursor = conn.cursor()
@@ -415,7 +534,7 @@ def save_project(
                 datetime.now(timezone.utc).isoformat(),
                 status,
                 json.dumps(selected_modules, ensure_ascii=False),
-                json.dumps(access_payload, ensure_ascii=False),
+                access_blob,
                 notes,
             ),
         )
@@ -456,6 +575,12 @@ def save_oauth_token(
         except (TypeError, ValueError):
             expires_at = None
 
+    try:
+        access_token_db = encrypt_text(access_token)
+        raw_json_db = encrypt_json(token_data)
+    except CryptoError as exc:
+        raise ValueError(str(exc)) from exc
+
     conn = sqlite3.connect(db_path)
     try:
         conn.execute(
@@ -477,10 +602,10 @@ def save_oauth_token(
             (
                 lead_id,
                 provider,
-                access_token,
+                access_token_db,
                 token_type,
                 expires_at,
-                json.dumps(token_data, ensure_ascii=False),
+                raw_json_db,
                 datetime.now(timezone.utc).isoformat(),
             ),
         )
@@ -513,15 +638,22 @@ def fetch_oauth_token(
     if row is None:
         return None
 
-    raw = {}
+    try:
+        access_token = decrypt_text(row["access_token"])
+    except CryptoError:
+        return None
+
+    raw: dict[str, object] = {}
     if row["raw_json"]:
         try:
-            raw = json.loads(row["raw_json"])
-        except json.JSONDecodeError:
+            raw_obj = decrypt_json(row["raw_json"])
+            if isinstance(raw_obj, dict):
+                raw = raw_obj
+        except Exception:
             raw = {}
 
     return {
-        "access_token": row["access_token"],
+        "access_token": access_token,
         "token_type": row["token_type"],
         "expires_at": row["expires_at"],
         "raw": raw,

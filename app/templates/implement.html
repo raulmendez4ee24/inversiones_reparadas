@@ -13,7 +13,9 @@
         <p class="pill">Implementacion</p>
         <h1>Solicitud recibida</h1>
         {% if payload %}
-        <p class="lead">Folio #{{ lead_id }} · Proyecto #{{ project_id }}</p>
+        <p class="lead">
+          Folio #{{ lead_id }}{% if project_id %} · Proyecto #{{ project_id }}{% endif %}
+        </p>
         {% endif %}
       </div>
       <a class="ghost" href="/">Nueva auditoria</a>
@@ -43,24 +45,37 @@
             <p class="meta">Metodo de pago: {{ payment_method }}</p>
           {% endif %}
         {% else %}
-          <p>Falta autorizacion del cliente para contrato y/o accesos.</p>
+          <p>Falta autorizacion del cliente para contrato y/o acceso.</p>
         {% endif %}
         {% if login_warning %}
           <p class="meta" style="color:#9b3b2b;">{{ login_warning }}</p>
         {% endif %}
-        {% if n8n_result %}
-          <p class="meta">Provision n8n: {{ n8n_result.status }}</p>
+        {% if security_warning %}
+          <p class="meta" style="color:#9b3b2b;">{{ security_warning }}</p>
         {% endif %}
-        {% if meta_validation %}
-          <ul>
-            {% if meta_validation.whatsapp %}
-              <li>WhatsApp: {{ "OK" if meta_validation.whatsapp.ok else "ERROR" }}</li>
-            {% endif %}
-            {% if meta_validation.messenger %}
-              <li>Messenger: {{ "OK" if meta_validation.messenger.ok else "ERROR" }}</li>
-            {% endif %}
-          </ul>
+        <p class="meta">
+          Siguiente paso: agenda tu sesion de Activacion (15 min). En esa llamada conectamos tus cuentas de forma segura
+          y confirmamos entregables.
+        </p>
+        {% if consent and payment_url %}
+          <div class="founder-actions">
+            <a class="button-link js-pay-now" href="{{ payment_url }}" target="_blank" rel="noopener">Ir a pagar ahora</a>
+          </div>
+          <p class="meta">Te abrimos el checkout en una nueva pestana para completar el pago.</p>
+        {% elif consent %}
+          <p class="meta" style="color:#9b3b2b;">
+            Falta configurar el link de pago. Define `PAYMENT_URL_CARD` y/o `PAYMENT_URL_TRANSFER`.
+          </p>
         {% endif %}
+        <div class="founder-actions">
+          {% if founder and founder.calendar_url %}
+            <a class="button-link" href="{{ founder.calendar_url }}" target="_blank" rel="noopener">Agendar por calendario</a>
+          {% endif %}
+          {% if founder and founder.whatsapp %}
+            {% set wa_text = ("Hola, quiero agendar mi sesion de Activacion. Proyecto " ~ project_id ~ " (Folio " ~ lead_id ~ ").") %}
+            <a class="mini-btn" href="https://wa.me/{{ founder.whatsapp | replace('+','') | replace(' ','') }}?text={{ wa_text | replace(' ', '%20') | replace('(', '%28') | replace(')', '%29') }}" target="_blank" rel="noopener">Agendar por WhatsApp</a>
+          {% endif %}
+        </div>
       </section>
 
       <section class="report-grid">
@@ -99,12 +114,12 @@
         <article class="card">
           <h3>Resumen de retorno</h3>
           <div class="kpi">
-            <span>MXN recuperados/mes</span>
-            <strong>{{ output.roi_mxn_saved_per_month }}</strong>
+            <span>Ganancia mensual proyectada</span>
+            <strong>${{ output.roi_mxn_saved_per_month | round(0) }} MXN</strong>
           </div>
           <div class="kpi">
-            <span>Implementacion unica (MXN)</span>
-            <strong>${{ output.pricing.setup_fee_mxn }}</strong>
+            <span>Inversion unica (MXN)</span>
+            <strong>${{ output.pricing.setup_fee_mxn }} MXN</strong>
           </div>
         </article>
       </section>
@@ -119,5 +134,12 @@
       </span>
     </footer>
   </main>
+  {% if consent and payment_url %}
+  <script>
+    window.setTimeout(() => {
+      window.location.href = "{{ payment_url }}";
+    }, 700);
+  </script>
+  {% endif %}
 </body>
 </html>

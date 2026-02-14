@@ -40,14 +40,14 @@ ACCESS_ITEMS: List[Dict[str, object]] = [
         "label": "ERP / Inventario",
         "description": "Sistema ERP, endpoint y credenciales.",
         "placeholder": "Ej. Odoo / SAP / Bind ERP + API key",
-        "modules": ["Sincronizacion Shopify-ERP", "Conciliacion bancaria automatica"],
+        "modules": ["Sincronizacion Shopify-ERP", "Conciliacion automatica (banco vs ventas)"],
     },
     {
         "key": "banking",
         "label": "Bancos / Conciliacion",
         "description": "Formato de estados de cuenta o API bancaria.",
         "placeholder": "Ej. Banorte CSV semanal o API token",
-        "modules": ["Conciliacion bancaria automatica"],
+        "modules": ["Conciliacion automatica (banco vs ventas)"],
     },
     {
         "key": "invoicing",

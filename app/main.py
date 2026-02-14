@@ -24,6 +24,7 @@ if __package__ in (None, ""):
 from app.core.access import access_items
 from app.core.analysis import run_analysis
 from app.core.ai_reply import generate_ai_reply
+from app.core.gemini_client import healthcheck as gemini_healthcheck
 from app.core.meta import validate_messenger, validate_whatsapp
 from app.core.models import BusinessInput
 from app.core.modules import catalog
@@ -35,6 +36,7 @@ from app.core.storage import (
     fetch_oauth_token,
     init_db,
     save_lead,
+    save_lead_capture,
     save_oauth_token,
     save_project,
     update_lead_credentials,
@@ -83,8 +85,25 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=_session_secret(),
     same_site="lax",
-    https_only=bool(os.getenv("SESSION_COOKIE_SECURE")),
+    https_only=bool(os.getenv("SESSION_COOKIE_SECURE"))
+    or os.getenv("APP_PUBLIC_URL", "").strip().lower().startswith("https://"),
+    max_age=60 * 60 * 24 * 14,
 )
+
+
+def _get_founder_info():
+    return {
+        "name": os.getenv("FOUNDER_NAME", "Raul Mendez"),
+        "role": os.getenv("FOUNDER_ROLE", "Director de Ingeniería & Automatización"),
+        "headline": os.getenv("FOUNDER_HEADLINE", "Infraestructura digital de clase mundial. Privacidad absoluta. Resultados exponenciales."),
+        "bio": os.getenv(
+            "FOUNDER_BIO",
+            "En K'an construimos el sistema nervioso digital de tu empresa. Fusionamos inteligencia artificial avanzada con seguridad criptográfica de grado militar (AES-256). Tu información es sagrada y tu tiempo es el activo más valioso. Diseñamos para escalar.",
+        ),
+        "photo_url": os.getenv("FOUNDER_PHOTO_URL", "https://ui-avatars.com/api/?name=Raul+Mendez&background=111827&color=fff&size=256&font-size=0.33"),
+        "whatsapp": os.getenv("FOUNDER_WHATSAPP", "").strip(),
+        "calendar_url": os.getenv("FOUNDER_CALENDAR_URL", "#contact").strip(),
+    }
 
 
 def _meta_oauth_config() -> dict[str, str]:
@@ -115,6 +134,31 @@ def _meta_oauth_config() -> dict[str, str]:
     }
 
 
+def _payment_url_for_method(
+    payment_method: str,
+    lead_id: int,
+    project_id: int,
+    company_name: str,
+) -> str | None:
+    method = (payment_method or "").strip().lower()
+    links = {
+        "tarjeta": os.getenv("PAYMENT_URL_CARD", "").strip(),
+        "transferencia": os.getenv("PAYMENT_URL_TRANSFER", "").strip(),
+    }
+    default_link = os.getenv("PAYMENT_URL_DEFAULT", "").strip()
+    base = links.get(method) or default_link
+    if not base:
+        return None
+
+    company_encoded = urllib.parse.quote((company_name or "").strip())
+    return (
+        base.replace("{lead_id}", str(lead_id))
+        .replace("{project_id}", str(project_id))
+        .replace("{company_name}", company_encoded)
+        .replace("{payment_method}", method or "pendiente")
+    )
+
+
 class AIReplyRequest(BaseModel):
     message: str
     channel: str | None = None
@@ -122,9 +166,85 @@ class AIReplyRequest(BaseModel):
     context: dict | None = None
 
 
+@app.post("/api/capture", response_class=JSONResponse)
+async def capture_lead(
+    request: Request,
+    email: str = Form(...),
+    phone: str = Form(""),
+    consent_contact: str = Form(""),
+    source: str = Form(""),
+):
+    consent_flag = consent_contact in ("1", "true", "on", "si", "yes")
+    user_agent = request.headers.get("user-agent", "")
+    ip = request.client.host if request.client else None
+    try:
+        capture_id = save_lead_capture(
+            DB_PATH,
+            email=email,
+            phone=phone,
+            consent_contact=consent_flag,
+            source=source or request.headers.get("referer", ""),
+            user_agent=user_agent,
+            ip=ip,
+        )
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+
+    return {"ok": True, "capture_id": capture_id}
+
+
+@app.get("/api/health/ai", response_class=JSONResponse)
+async def ai_health():
+    status = gemini_healthcheck()
+    if status.get("ok"):
+        code = 200
+    elif status.get("error") == "missing_api_key":
+        code = 400
+    else:
+        code = 503
+    return JSONResponse(status, status_code=code)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    founder = _get_founder_info()
+    trust = [
+        "OpenAI Enterprise",
+        "Google Cloud Platform",
+        "Meta Business",
+        "AES-256 Encryption",
+        "Zero-Knowledge Privacy",
+    ]
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "founder": founder,
+            "trust": trust,
+        },
+    )
+
+
+@app.get("/founder", response_class=HTMLResponse)
+async def founder_page(request: Request):
+    return templates.TemplateResponse(
+        "founder.html",
+        {
+            "request": request,
+            "founder": _get_founder_info(),
+        },
+    )
+
+
+@app.get("/arquitecto", response_class=HTMLResponse)
+async def arquitecto_page(request: Request):
+    return templates.TemplateResponse(
+        "founder.html",
+        {
+            "request": request,
+            "founder": _get_founder_info(),
+        },
+    )
 
 
 @app.get("/handoff")
@@ -154,6 +274,7 @@ async def onboarding_view(request: Request, lead_id: int):
             "recommended": recommended,
             "access_items": access_items(),
             "meta_connected": meta_connected,
+            "founder": _get_founder_info(),
         },
     )
 
@@ -169,14 +290,18 @@ async def diagnose(
     team_size_target: int = Form(0),
     team_focus_same: str = Form(""),
     team_roles: str = Form(""),
-    avg_daily_cost_mxn: float = Form(...),
-    manual_days_per_week: float = Form(...),
-    processes: str = Form(...),
+    employee_band: str = Form(""),
+    transaction_volume: str = Form(""),
+    tooling_level: str = Form(""),
+    manual_hours_per_week: float = Form(0),
+    selected_modules: list[str] = Form(default=[]),
+    processes: str = Form(""),
     bottlenecks: str = Form(...),
-    systems: str = Form(...),
-    goals: str = Form(...),
+    systems: str = Form(""),
+    goals: str = Form(""),
     budget_range: str = Form(""),
-    contact_email: str = Form(""),
+    contact_email: str = Form(...),
+    contact_whatsapp: str = Form(""),
 ):
     team_focus_flag = None
     if team_focus_same == "si":
@@ -193,14 +318,18 @@ async def diagnose(
         team_size_target=team_size_target or None,
         team_focus_same=team_focus_flag,
         team_roles=team_roles or None,
-        avg_daily_cost_mxn=avg_daily_cost_mxn,
-        manual_days_per_week=manual_days_per_week,
+        employee_band=employee_band or None,
+        transaction_volume=transaction_volume or None,
+        tooling_level=tooling_level or None,
+        manual_hours_per_week=manual_hours_per_week or 0,
+        selected_modules=selected_modules or [],
         processes=processes,
         bottlenecks=bottlenecks,
         systems=systems,
         goals=goals,
         budget_range=budget_range or None,
         contact_email=contact_email or None,
+        contact_whatsapp=contact_whatsapp or None,
     )
 
     output = run_analysis(payload)
@@ -210,6 +339,7 @@ async def diagnose(
             "request": request,
             "payload": payload,
             "output": output,
+            "founder": _get_founder_info(),
         },
     )
 
@@ -225,14 +355,18 @@ async def handoff(
     team_size_target: int = Form(0),
     team_focus_same: str = Form(""),
     team_roles: str = Form(""),
-    avg_daily_cost_mxn: float = Form(...),
-    manual_days_per_week: float = Form(...),
-    processes: str = Form(...),
+    employee_band: str = Form(""),
+    transaction_volume: str = Form(""),
+    tooling_level: str = Form(""),
+    manual_hours_per_week: float = Form(0),
+    selected_modules: list[str] = Form(default=[]),
+    processes: str = Form(""),
     bottlenecks: str = Form(...),
-    systems: str = Form(...),
-    goals: str = Form(...),
+    systems: str = Form(""),
+    goals: str = Form(""),
     budget_range: str = Form(""),
-    contact_email: str = Form(""),
+    contact_email: str = Form(...),
+    contact_whatsapp: str = Form(""),
 ):
     team_focus_flag = None
     if team_focus_same == "si":
@@ -249,14 +383,18 @@ async def handoff(
         team_size_target=team_size_target or None,
         team_focus_same=team_focus_flag,
         team_roles=team_roles or None,
-        avg_daily_cost_mxn=avg_daily_cost_mxn,
-        manual_days_per_week=manual_days_per_week,
+        employee_band=employee_band or None,
+        transaction_volume=transaction_volume or None,
+        tooling_level=tooling_level or None,
+        manual_hours_per_week=manual_hours_per_week or 0,
+        selected_modules=selected_modules or [],
         processes=processes,
         bottlenecks=bottlenecks,
         systems=systems,
         goals=goals,
         budget_range=budget_range or None,
         contact_email=contact_email or None,
+        contact_whatsapp=contact_whatsapp or None,
     )
 
     output = run_analysis(payload)
@@ -275,6 +413,7 @@ async def handoff(
             "recommended": recommended,
             "access_items": access_items(),
             "meta_connected": False,
+            "founder": _get_founder_info(),
         },
     )
 
@@ -413,7 +552,18 @@ async def meta_callback(
             },
         )
 
-    save_oauth_token(DB_PATH, lead_id, "meta", data)
+    try:
+        save_oauth_token(DB_PATH, lead_id, "meta", data)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            "meta_connected.html",
+            {
+                "request": request,
+                "status": "error",
+                "message": f"No se pudo guardar el token de forma segura: {exc}",
+                "lead_id": lead_id,
+            },
+        )
     return templates.TemplateResponse(
         "meta_connected.html",
         {
@@ -435,6 +585,7 @@ async def implement(request: Request):
             {
                 "request": request,
                 "error": "Lead invalido.",
+                "founder": _get_founder_info(),
             },
         )
 
@@ -446,6 +597,7 @@ async def implement(request: Request):
             {
                 "request": request,
                 "error": "Lead no encontrado.",
+                "founder": _get_founder_info(),
             },
         )
 
@@ -525,6 +677,8 @@ async def implement(request: Request):
     contract_consent = form.get("consent") == "on"
     access_consent = form.get("access_consent") == "on"
     consent = contract_consent and access_consent
+    encryption_key_configured = bool(os.getenv("DATA_ENCRYPTION_KEY", "").strip())
+    security_warning = None
 
     access_payload = {
         "contract": {
@@ -550,16 +704,44 @@ async def implement(request: Request):
                 "label": item["label"],
                 "value": value,
             }
+    access_payload_db = access_payload
+    if not encryption_key_configured:
+        # Keep onboarding moving even if secure storage is not configured yet.
+        access_payload_db = {}
+        security_warning = (
+            "DATA_ENCRYPTION_KEY no esta configurada. "
+            "Continuamos el flujo, pero no guardamos accesos sensibles en base de datos."
+        )
 
     notes = (form.get("notes") or "").strip()
     status = "pending_consent" if not consent else "queued"
-    project_id = save_project(
-        DB_PATH,
-        lead_id,
-        selected_modules,
-        access_payload,
-        notes,
-        status,
+    try:
+        project_id = save_project(
+            DB_PATH,
+            lead_id,
+            selected_modules,
+            access_payload_db,
+            notes,
+            status,
+        )
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            "implement.html",
+            {
+                "request": request,
+                "payload": payload,
+                "output": output,
+                "lead_id": lead_id,
+                "error": str(exc),
+                "selected_modules": selected_modules,
+                "founder": _get_founder_info(),
+            },
+        )
+    payment_url = _payment_url_for_method(
+        payment_method=payment_method,
+        lead_id=lead_id,
+        project_id=project_id,
+        company_name=payload.company_name,
     )
 
     webhook_url = os.getenv("N8N_WEBHOOK_URL", "").strip()
@@ -635,6 +817,9 @@ async def implement(request: Request):
             "login_warning": login_warning,
             "automation_options": automation_options,
             "selected_modules": selected_modules,
+            "payment_url": payment_url,
+            "security_warning": security_warning,
+            "founder": _get_founder_info(),
         },
     )
 
@@ -664,6 +849,7 @@ async def portal_login(request: Request):
         {
             "request": request,
             "error": None,
+            "founder": _get_founder_info(),
         },
     )
 
@@ -681,6 +867,7 @@ async def portal_login_post(
             {
                 "request": request,
                 "error": error,
+                "founder": _get_founder_info(),
             },
         )
 
@@ -691,6 +878,7 @@ async def portal_login_post(
             {
                 "request": request,
                 "error": "No encontramos tu cuenta.",
+                "founder": _get_founder_info(),
             },
         )
 
@@ -719,6 +907,7 @@ async def portal_home(request: Request):
             "output": output,
             "lead_id": lead_id,
             "latest_project": latest_project,
+            "founder": _get_founder_info(),
         },
     )
 
@@ -742,6 +931,7 @@ async def privacy(request: Request):
         {
             "request": request,
             "support_email": support_email,
+            "founder": _get_founder_info(),
         },
     )
 
@@ -754,6 +944,7 @@ async def terms(request: Request):
         {
             "request": request,
             "support_email": support_email,
+            "founder": _get_founder_info(),
         },
     )
 
@@ -766,5 +957,6 @@ async def data_deletion(request: Request):
         {
             "request": request,
             "support_email": support_email,
+            "founder": _get_founder_info(),
         },
     )

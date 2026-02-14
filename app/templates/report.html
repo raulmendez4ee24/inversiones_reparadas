@@ -17,34 +17,150 @@
       <a class="ghost" href="/">Nueva auditoria</a>
     </header>
 
-    <section class="report-grid">
-      <article class="card">
-        <h3>Fricciones detectadas</h3>
-        <ul>
-          {% for item in output.friction_points %}
-          <li>{{ item }}</li>
-          {% endfor %}
-        </ul>
+    {% set jornadas_mes = (output.roi_hours_saved_per_month / 8) if output.roi_hours_saved_per_month else 0 %}
+
+    <section class="executive-board">
+      <article class="exec-tile">
+        <span>Paquete sugerido</span>
+        <strong>{{ output.pricing.service_tier if output.pricing.service_tier else "Personalizado" }}</strong>
+        <small>Recomendado por escala, volumen y herramientas actuales.</small>
       </article>
-      <article class="card highlight">
-        <h3>Retorno estimado</h3>
-        <div class="kpi">
-          <span>Horas recuperadas/mes</span>
-          <strong>{{ output.roi_hours_saved_per_month }}</strong>
-        </div>
-        <div class="kpi">
-          <span>MXN recuperados/mes</span>
-          <strong>{{ output.roi_mxn_saved_per_month }}</strong>
-        </div>
-        <div class="kpi">
-          <span>Recuperacion de inversion</span>
-          <strong>{{ output.payback_months }} meses</strong>
-        </div>
+      <article class="exec-tile">
+        <span>Inversion inicial</span>
+        <strong>${{ output.pricing.setup_fee_mxn | round(0) }} MXN</strong>
+        <small>Con criterio ROI y ajuste de oferta irresistible.</small>
+      </article>
+      <article class="exec-tile">
+        <span>Payback conservador</span>
+        <strong>{{ output.payback_months }} meses</strong>
+        <small>Sin incluir el upside de oportunidad en ventas.</small>
+      </article>
+      <article class="exec-tile">
+        <span>Impacto anual estimado</span>
+        <strong>${{ output.roi_total_with_opportunity_mxn_per_year | round(0) }} MXN</strong>
+        <small>Tiempo + errores evitados + oportunidad comercial.</small>
       </article>
     </section>
 
+    <section class="report-grid">
+      <article class="card highlight">
+        <h3>Fuga de Capital Detectada</h3>
+        <div class="kpi big">
+          <span>Impacto anual proyectado</span>
+          <strong>${{ output.roi_total_with_opportunity_mxn_per_year | round(0) }} MXN</strong>
+        </div>
+        <div class="kpi">
+          <span>Ahorro recurrente (conservador)</span>
+          <strong>${{ output.roi_mxn_saved_per_month | round(0) }} MXN/mes</strong>
+        </div>
+        <div class="kpi">
+          <span>Impacto en ventas/atencion (oportunidad)</span>
+          <strong>${{ output.roi_opportunity_mxn_per_month | round(0) }} MXN/mes</strong>
+        </div>
+        <div class="kpi">
+          <span>Riesgo de error humano (impacto)</span>
+          <strong>${{ output.roi_error_cost_mxn_per_month | round(0) }} MXN/mes</strong>
+        </div>
+        <p class="meta">
+          Esto es dinero que hoy se va en procesos manuales + errores + lo que dejas de ganar por tener a tu equipo
+          ocupado en Excel en lugar de vender o atender.
+        </p>
+      </article>
+
+      <article class="card">
+        <h3>El diagnostico</h3>
+        <p class="meta"><strong>¿Cuantos dias de sueldo estas regalando al mes?</strong></p>
+        <div class="kpi big">
+          <span>Jornadas laborales completas (8h)</span>
+          <strong>{{ jornadas_mes | round(1) }} dias/mes</strong>
+        </div>
+        <div class="kpi">
+          <span>Sueldo regalado (solo tiempo)</span>
+          <strong>${{ output.roi_time_value_mxn_per_month | round(0) }} MXN/mes</strong>
+        </div>
+        <p class="meta">
+          Para estimar usamos un costo promedio por dia de <strong>${{ output.roi_loaded_daily_cost_mxn | round(0) }} MXN</strong>
+          (sueldo neto + carga prestacional ~30%).
+        </p>
+        <p class="meta">Equivale a {{ output.roi_fte_equivalent }} personas de tiempo completo.</p>
+      </article>
+    </section>
+
+    <section class="compare-grid">
+      <article class="card money problem">
+        <h3>Lo que estas dejando de ganar al año</h3>
+        <p class="money-amount">${{ output.roi_total_with_opportunity_mxn_per_year | round(0) }} MXN</p>
+        <p class="meta">
+          Incluye sueldos regalados + reduccion de errores + costo de oportunidad (ventas/atencion).
+        </p>
+        <p class="meta">
+          Riesgo de error humano (impacto): ${{ (output.roi_error_cost_mxn_per_month * 12) | round(0) }} MXN/año.
+        </p>
+      </article>
+      <article class="card money solution">
+        <h3>Solucion K'an</h3>
+        <p class="money-amount">${{ output.pricing.setup_fee_mxn }} MXN</p>
+        {% if output.pricing.service_tier %}
+        <p class="meta">
+          Paquete sugerido: <strong>{{ output.pricing.service_tier }}</strong>
+          {% if output.pricing.suggested_range_min_mxn and output.pricing.suggested_range_max_mxn %}
+          (rango ${{ output.pricing.suggested_range_min_mxn }} - ${{ output.pricing.suggested_range_max_mxn }} MXN).
+          {% endif %}
+        </p>
+        {% endif %}
+        <p class="meta">
+          Inversion unica para construir tu infraestructura de automatizacion y dejarla operando.
+        </p>
+        <p class="meta">
+          <strong>Payback conservador:</strong> {{ output.payback_months }} meses (sin contar el potencial extra en ventas).
+        </p>
+      </article>
+    </section>
+
+    <section class="card action-panel">
+      <h3>Recomendacion ejecutiva</h3>
+      <p class="meta">
+        Si quieres velocidad, empieza con una implementacion express y escalamos a una arquitectura completa en fases.
+        Si quieres impacto mayor desde el dia uno, vamos directo al paquete recomendado.
+      </p>
+      <div class="action-panel-cta">
+        <a class="button-link" href="#activar">Activar implementacion</a>
+        {% if founder and founder.whatsapp %}
+        <a class="ghost" href="https://wa.me/{{ founder.whatsapp | replace('+','') | replace(' ','') }}?text=Quiero%20activar%20mi%20plan%20de%20automatizacion%20K%27an" target="_blank" rel="noopener">
+          Hablar con un arquitecto
+        </a>
+        {% endif %}
+      </div>
+    </section>
+
     <section class="card">
-      <h3>Modulos recomendados</h3>
+      <h3>Impacto en ventas</h3>
+      <p class="meta">
+        Lo que podrias ganar si tu equipo estuviera libre: <strong>${{ output.roi_opportunity_mxn_per_month | round(0) }} MXN/mes</strong>.
+        Con {{ jornadas_mes | round(1) }} jornadas liberadas al mes, tu gente vuelve a vender y atender clientes
+        en lugar de capturar, ordenar y corregir.
+      </p>
+      <ul>
+        <li><strong>Escalabilidad:</strong> esa carga manual equivale a {{ output.roi_fte_equivalent }} personas. Sin automatizar, para crecer vas a contratar mas.</li>
+        <li><strong>Costo de rotacion:</strong> cada vez que entra alguien nuevo, reentrenarlo te puede costar aprox. ${{ output.roi_rotation_cost_mxn_per_hire | round(0) }} MXN.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>Dinero que estas dejando en la mesa</h3>
+      <ul class="pain-list">
+        {% for item in output.friction_points %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>Que implementariamos primero</h3>
+      <p class="meta">
+        Esto es una infraestructura de automatizacion total: un <strong>Empleado Digital Invisible</strong> que trabaja 24/7
+        en tus archivos, documentos y procesos (sin errores de copiar/pegar).
+      </p>
       <div class="modules">
         {% for module in output.recommended_modules %}
         <div class="module">
@@ -78,7 +194,7 @@
           {% for phase in output.roadmap %}
           <li>
             <strong>{{ phase.name }}</strong>
-            <span>{{ phase.focus }} · {{ phase.duration_weeks }} semanas</span>
+            <span>{{ phase.focus }} · {{ phase.duration_label if phase.duration_label else phase.duration_weeks ~ " semanas" }}</span>
             <em>{{ phase.deliverable }}</em>
           </li>
           {% endfor %}
@@ -105,25 +221,42 @@
         {% endif %}
       </article>
       <article class="card">
-        <h3>Cotizacion clara</h3>
-        <p class="meta">Explicado facil: pagas una vez la implementacion y despues un mantenimiento mensual.</p>
+        <h3>Inversion clara</h3>
+        <p class="meta">Explicado facil: es una inversion unica para automatizar lo que marcaste.</p>
         <div class="kpi">
-          <span>Implementacion unica (MXN)</span>
+          <span>Inversion unica (MXN)</span>
           <strong>${{ output.pricing.setup_fee_mxn }}</strong>
         </div>
+        {% if output.pricing.roi_annual_formula_mxn is not none %}
         <div class="kpi">
-          <span>Mantenimiento mensual (MXN)</span>
-          <strong>${{ output.pricing.monthly_retainer_mxn }}</strong>
+          <span>ROI anual (formula Horas_Ahorradas x Costo_Hora - Inversion)</span>
+          <strong>${{ output.pricing.roi_annual_net_mxn | round(0) }} MXN</strong>
         </div>
-        <div class="meta">
-          <strong>Proceso de pago</strong>
+        {% endif %}
+        {% if output.pricing.roi_multiple is not none %}
+        <div class="kpi">
+          <span>Multiplo anual ahorro / inversion</span>
+          <strong>{{ output.pricing.roi_multiple }}x</strong>
         </div>
-        <ol class="roadmap">
-          <li>Confirmas la propuesta.</li>
-          <li>Firmamos contrato y compartes accesos.</li>
-          <li>Recibes link de pago (transferencia o tarjeta).</li>
-          <li>Iniciamos implementacion.</li>
-        </ol>
+        {% endif %}
+        {% if output.pricing.roi_adjusted_to_3x %}
+        <p class="meta"><strong>Precio ajustado automaticamente para mantener oferta irresistible (ROI >= 3x).</strong></p>
+        {% endif %}
+        <div class="kpi">
+          <span>Ahorro por errores evitados (estimado)</span>
+          <strong>${{ output.roi_error_savings_mxn_per_month | round(0) }} MXN/mes</strong>
+        </div>
+        <div class="kpi">
+          <span>Ahorro por tiempo (sueldos regalados)</span>
+          <strong>${{ output.roi_time_value_mxn_per_month | round(0) }} MXN/mes</strong>
+        </div>
+        <div class="kpi">
+          <span>Potencial extra en ventas (oportunidad)</span>
+          <strong>${{ output.roi_opportunity_mxn_per_month | round(0) }} MXN/mes</strong>
+        </div>
+        <p class="meta">
+          La configuracion tecnica y conexion de cuentas esta incluida y la hace nuestro equipo de ingenieros.
+        </p>
         <ul>
           {% for item in output.pricing.assumptions %}
           <li>{{ item }}</li>
@@ -133,7 +266,7 @@
     </section>
 
     <section class="card">
-      <h3>Nota ejecutiva</h3>
+      <h3>Resumen claro</h3>
       <p>{{ output.notes }}</p>
       {% if output.opportunities %}
       <h4>Oportunidades aplicables</h4>
@@ -161,28 +294,81 @@
       {% endif %}
     </section>
 
-    <section class="card cta">
+    <section class="card cta" id="activar">
       <h3>Quieres que lo implementemos?</h3>
-      <p class="meta">Con un clic iniciamos el proceso de accesos y contrato.</p>
-      <form method="post" action="/handoff">
+      <p class="meta">
+        Paso final: agenda tu sesion de activacion. En esa llamada conectamos tus cuentas de forma segura por ti.
+      </p>
+      <form id="activationForm" method="post" action="/handoff">
+        <input type="hidden" name="contact_email" value="{{ payload.contact_email or '' }}" />
+        <input type="hidden" name="contact_whatsapp" value="{{ payload.contact_whatsapp or '' }}" />
         <input type="hidden" name="company_name" value="{{ payload.company_name }}" />
         <input type="hidden" name="industry" value="{{ payload.industry }}" />
         <input type="hidden" name="business_focus" value="{{ payload.business_focus }}" />
         <input type="hidden" name="region" value="{{ payload.region }}" />
+        <input type="hidden" name="employee_band" value="{{ payload.employee_band or '' }}" />
+        <input type="hidden" name="transaction_volume" value="{{ payload.transaction_volume or '' }}" />
+        <input type="hidden" name="tooling_level" value="{{ payload.tooling_level or '' }}" />
         <input type="hidden" name="team_size" value="{{ payload.team_size }}" />
-        <input type="hidden" name="team_size_target" value="{{ payload.team_size_target or '' }}" />
-        <input type="hidden" name="team_focus_same" value="{% if payload.team_focus_same is not none %}{{ 'si' if payload.team_focus_same else 'no' }}{% endif %}" />
         <input type="hidden" name="team_roles" value="{{ payload.team_roles or '' }}" />
-        <input type="hidden" name="avg_daily_cost_mxn" value="{{ payload.avg_daily_cost_mxn }}" />
-        <input type="hidden" name="manual_days_per_week" value="{{ payload.manual_days_per_week }}" />
-        <input type="hidden" name="processes" value="{{ payload.processes }}" />
+        <input type="hidden" name="manual_hours_per_week" value="{{ payload.manual_hours_per_week }}" />
+        {% for module_key in payload.selected_modules %}
+          <input type="hidden" class="base-selected-module" name="selected_modules" value="{{ module_key }}" />
+        {% endfor %}
+        <div id="expressModuleOverrides"></div>
+        <input type="hidden" name="processes" value="{{ payload.processes or '' }}" />
         <input type="hidden" name="bottlenecks" value="{{ payload.bottlenecks }}" />
-        <input type="hidden" name="systems" value="{{ payload.systems }}" />
-        <input type="hidden" name="goals" value="{{ payload.goals }}" />
+        <input type="hidden" name="systems" value="{{ payload.systems or '' }}" />
+        <input type="hidden" name="goals" value="{{ payload.goals or '' }}" />
         <input type="hidden" name="budget_range" value="{{ payload.budget_range or '' }}" />
-        <input type="hidden" name="contact_email" value="{{ payload.contact_email or '' }}" />
-        <button type="submit">Implementar ahora</button>
+        <button type="submit">Pagar e iniciar conexion segura</button>
       </form>
+    </section>
+
+    <section class="card express-section" id="express-final">
+      <h3>Soluciones express (micro y personal)</h3>
+      <p class="meta">
+        Estas opciones estan al final para que primero veas el analisis completo. Si das clic en una, te llevamos a implementacion y pago.
+      </p>
+      <div class="report-grid express-grid">
+        <article
+          class="card money solution express-trigger"
+          role="button"
+          tabindex="0"
+          data-offer="chatbot"
+          data-title="Chatbot basico para WhatsApp"
+          data-price="$2,000 - $3,000 MXN"
+          data-desc="Respuestas rapidas, FAQ basico y captura de datos de contacto para no perder mensajes."
+        >
+          <h3>Chatbot basico para WhatsApp</h3>
+          <p class="money-amount">$2,000 - $3,000 MXN</p>
+          <p class="meta">
+            Respuestas rapidas, FAQ basico y captura de datos de contacto para no perder mensajes.
+          </p>
+        </article>
+        <article
+          class="card money solution express-trigger"
+          role="button"
+          tabindex="0"
+          data-offer="agenda"
+          data-title="Agenda + chatbot por WhatsApp"
+          data-price="$2,500 - $4,500 MXN"
+          data-desc="Confirmacion de citas, recordatorios automaticos y control simple de disponibilidad."
+        >
+          <h3>Agenda + chatbot por WhatsApp</h3>
+          <p class="money-amount">$2,500 - $4,500 MXN</p>
+          <p class="meta">
+            Confirmacion de citas, recordatorios automaticos y control simple de disponibilidad.
+          </p>
+        </article>
+      </div>
+      {% if founder and founder.whatsapp %}
+      <p class="meta">
+        <a class="button-link" href="https://wa.me/{{ founder.whatsapp | replace('+','') | replace(' ','') }}?text=Quiero%20una%20solucion%20express%20de%20chatbot%20o%20agenda%20por%20WhatsApp" target="_blank" rel="noopener">
+          Quiero solucion express por WhatsApp
+        </a>
+      </p>
+      {% endif %}
     </section>
 
     <footer class="site-footer">
@@ -194,5 +380,114 @@
       </span>
     </footer>
   </main>
+
+  <div class="modal-backdrop" id="expressModal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="expressModalTitle">
+      <button type="button" class="modal-close" aria-label="Cerrar">x</button>
+      <p class="pill mini">Implementacion express</p>
+      <h3 id="expressModalTitle">Solucion express</h3>
+      <p class="money-amount" id="expressModalPrice">$0 MXN</p>
+      <p class="meta" id="expressModalDesc"></p>
+      <div class="modal-actions">
+        <button type="button" class="ghost-btn js-go-activar">Ver implementacion</button>
+        <button type="button" class="button-link js-go-pay">Ir a implementacion y pago</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const modal = document.getElementById("expressModal");
+      const titleEl = document.getElementById("expressModalTitle");
+      const priceEl = document.getElementById("expressModalPrice");
+      const descEl = document.getElementById("expressModalDesc");
+      const closeBtn = modal ? modal.querySelector(".modal-close") : null;
+      const goPayBtn = modal ? modal.querySelector(".js-go-pay") : null;
+      const goActivarBtn = modal ? modal.querySelector(".js-go-activar") : null;
+      const triggers = Array.from(document.querySelectorAll(".express-trigger"));
+      const activationForm = document.getElementById("activationForm");
+      const baseModules = activationForm
+        ? Array.from(activationForm.querySelectorAll(".base-selected-module"))
+        : [];
+      const overrides = document.getElementById("expressModuleOverrides");
+      let currentOffer = "";
+
+      const offerModules = {
+        chatbot: ["whatsapp_ventas"],
+        agenda: ["whatsapp_ventas", "eficiencia_administrativa"],
+      };
+
+      function setOfferModules(offer) {
+        if (!activationForm || !overrides) return;
+        baseModules.forEach((input) => {
+          input.disabled = true;
+        });
+        overrides.innerHTML = "";
+        (offerModules[offer] || []).forEach((moduleKey) => {
+          const hidden = document.createElement("input");
+          hidden.type = "hidden";
+          hidden.name = "selected_modules";
+          hidden.value = moduleKey;
+          overrides.appendChild(hidden);
+        });
+      }
+
+      function closeModal() {
+        if (!modal) return;
+        modal.hidden = true;
+      }
+
+      function openModal(trigger) {
+        if (!modal || !titleEl || !priceEl || !descEl) return;
+        currentOffer = trigger.dataset.offer || "";
+        titleEl.textContent = trigger.dataset.title || "Solucion express";
+        priceEl.textContent = trigger.dataset.price || "";
+        descEl.textContent = trigger.dataset.desc || "";
+        modal.hidden = false;
+      }
+
+      triggers.forEach((trigger) => {
+        trigger.addEventListener("click", () => openModal(trigger));
+        trigger.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openModal(trigger);
+          }
+        });
+      });
+
+      if (closeBtn) {
+        closeBtn.addEventListener("click", closeModal);
+      }
+      if (modal) {
+        modal.addEventListener("click", (event) => {
+          if (event.target === modal) {
+            closeModal();
+          }
+        });
+      }
+      if (goActivarBtn) {
+        goActivarBtn.addEventListener("click", () => {
+          closeModal();
+          const activar = document.getElementById("activar");
+          if (activar) {
+            activar.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      }
+      if (goPayBtn) {
+        goPayBtn.addEventListener("click", () => {
+          if (!activationForm) return;
+          setOfferModules(currentOffer);
+          activationForm.submit();
+        });
+      }
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeModal();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
