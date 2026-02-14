@@ -74,6 +74,16 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
+def _clean_calendar_url(value: str) -> str:
+    raw = (value or "").strip()
+    if raw in ("", "#", "#contact"):
+        return ""
+    # Prevent accidental self-loop if someone configures /agenda as external URL.
+    if raw.startswith("/agenda"):
+        return ""
+    return raw
+
+
 def _session_secret() -> str:
     secret = os.getenv("SESSION_SECRET", "").strip()
     if secret:
@@ -92,6 +102,7 @@ app.add_middleware(
 
 
 def _get_founder_info():
+    calendar_url = _clean_calendar_url(os.getenv("FOUNDER_CALENDAR_URL", ""))
     return {
         "name": os.getenv("FOUNDER_NAME", "Raul Mendez"),
         "role": os.getenv("FOUNDER_ROLE", "Director de Ingeniería & Automatización"),
@@ -102,7 +113,7 @@ def _get_founder_info():
         ),
         "photo_url": os.getenv("FOUNDER_PHOTO_URL", "https://ui-avatars.com/api/?name=Raul+Mendez&background=111827&color=fff&size=256&font-size=0.33"),
         "whatsapp": os.getenv("FOUNDER_WHATSAPP", "").strip(),
-        "calendar_url": os.getenv("FOUNDER_CALENDAR_URL", "#contact").strip(),
+        "calendar_url": calendar_url,
     }
 
 
@@ -245,6 +256,31 @@ async def arquitecto_page(request: Request):
             "founder": _get_founder_info(),
         },
     )
+
+
+@app.get("/agenda")
+async def agenda_redirect(
+    lead_id: int | None = None,
+    company: str = "",
+    source: str = "",
+):
+    founder = _get_founder_info()
+    calendar_url = (founder.get("calendar_url") or "").strip()
+    if calendar_url:
+        return RedirectResponse(url=calendar_url, status_code=302)
+
+    whatsapp = (founder.get("whatsapp") or "").strip().replace("+", "").replace(" ", "")
+    if whatsapp:
+        context = (company or "tu empresa").strip()
+        if lead_id:
+            context = f"Folio {lead_id} ({context})"
+        text = f"Hola, quiero agendar una sesion de activacion para {context}."
+        if source:
+            text += f" Fuente: {source}."
+        wa_url = f"https://wa.me/{whatsapp}?text={urllib.parse.quote(text)}"
+        return RedirectResponse(url=wa_url, status_code=302)
+
+    return RedirectResponse(url="/#diagnostico", status_code=302)
 
 
 @app.get("/handoff")

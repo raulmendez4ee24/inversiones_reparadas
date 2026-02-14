@@ -68,8 +68,8 @@
           </p>
         {% endif %}
         <div class="founder-actions">
-          {% if founder and founder.calendar_url %}
-            <a class="button-link" href="{{ founder.calendar_url }}" target="_blank" rel="noopener">Agendar por calendario</a>
+          {% if founder and (founder.calendar_url or founder.whatsapp) %}
+            <a class="button-link" href="/agenda?lead_id={{ lead_id }}&company={{ payload.company_name | urlencode }}&source=implement" target="_blank" rel="noopener">Agendar por calendario</a>
           {% endif %}
           {% if founder and founder.whatsapp %}
             {% set wa_text = ("Hola, quiero agendar mi sesion de Activacion. Proyecto " ~ project_id ~ " (Folio " ~ lead_id ~ ").") %}
