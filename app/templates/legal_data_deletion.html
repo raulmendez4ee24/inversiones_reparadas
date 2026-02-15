@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Eliminacion de datos | K'an Logic Systems</title>
+  <title>Eliminacion de datos | {{ legal.company_name }}</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
@@ -12,51 +12,84 @@
       <div>
         <p class="pill">Legal</p>
         <h1>Eliminacion de datos de usuario</h1>
-        <p class="lead">Instrucciones para solicitar la eliminacion de datos asociados a tu empresa.</p>
+        <p class="lead">Procedimiento para solicitar supresion de datos asociados a tu cuenta, empresa o folio.</p>
       </div>
       <a class="ghost" href="/">Inicio</a>
     </header>
 
     <section class="card">
-      <h3>Como solicitar la eliminacion</h3>
-      <p class="meta">
-        Envia un correo a <strong>{{ support_email }}</strong> con el asunto:
-        <strong>"Solicitud de eliminacion de datos"</strong>.
-      </p>
-      <p class="meta">Incluye en el mensaje:</p>
+      <h3>1) Quien puede solicitar la eliminacion</h3>
       <ul>
-        <li>Nombre de la empresa (como aparece en el diagnostico).</li>
-        <li>Correo de contacto.</li>
-        <li>Folio (si lo tienes) o una captura del reporte.</li>
+        <li>Titular de los datos personales.</li>
+        <li>Representante autorizado de la empresa titular.</li>
+        <li>Administrador con control comprobable del correo o cuenta registrada.</li>
       </ul>
+    </section>
+
+    <section class="card">
+      <h3>2) Como solicitarla</h3>
+      <p class="meta">Envianos un correo a <a href="mailto:{{ legal.support_email }}">{{ legal.support_email }}</a> con asunto:</p>
+      <p class="meta"><strong>Solicitud de eliminacion de datos - {{ legal.company_name }}</strong></p>
+      <p class="meta">Tambien puedes iniciar el contacto desde <a href="/contact">/contact</a>.</p>
+      <p class="meta">Incluye:</p>
+      <ul>
+        <li>Nombre de la empresa.</li>
+        <li>Correo registrado y, si existe, folio/proyecto.</li>
+        <li>Alcance de borrado solicitado (parcial o total).</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>3) Verificacion y seguridad</h3>
       <p class="meta">
-        Por seguridad, podemos pedir confirmacion adicional antes de eliminar datos o accesos tecnicos.
+        Antes de eliminar, validamos identidad o representacion para evitar borrados no autorizados.
+        Podemos solicitar evidencia adicional minima para confirmar titularidad.
       </p>
     </section>
 
     <section class="card">
-      <h3>Que eliminamos</h3>
+      <h3>4) Que datos eliminamos</h3>
       <ul>
-        <li>Datos del diagnostico y onboarding guardados en nuestro sistema.</li>
-        <li>Autorizaciones/permisos guardados para integraciones (cuando aplique).</li>
-        <li>Registros tecnicos asociados al folio, cuando sea posible.</li>
+        <li>Datos de diagnostico, onboarding, notas y preferencias asociadas al folio.</li>
+        <li>Credenciales y artefactos tecnicos almacenados para integraciones (si aplica).</li>
+        <li>Registros de portal y trazas operativas vinculadas, cuando proceda tecnicamente.</li>
       </ul>
       <p class="meta">
-        Si hay datos que dependen de un proveedor externo (por ejemplo Meta/WhatsApp), la eliminacion puede requerir
-        acciones adicionales en ese proveedor.
+        Si existen obligaciones legales o de seguridad vigentes, ciertos registros minimos pueden conservarse
+        por el plazo estrictamente necesario.
       </p>
     </section>
 
     <section class="card">
-      <h3>Tiempo de respuesta</h3>
-      <p class="meta">Normalmente procesamos solicitudes dentro de 7 a 30 dias.</p>
+      <h3>5) Servicios de terceros</h3>
+      <p class="meta">
+        Si tus datos tambien viven en plataformas externas (por ejemplo Meta, proveedores de pago,
+        nube o CRM), podras requerir solicitudes adicionales directamente con esos proveedores.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3>6) Tiempos de atencion</h3>
+      <ul>
+        <li>Acuse de recepcion: 24-72 horas habiles.</li>
+        <li>Resolucion habitual: 7-30 dias naturales, segun complejidad del caso.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>7) Contacto</h3>
+      <p class="meta">Soporte legal/privacidad: <a href="mailto:{{ legal.support_email }}">{{ legal.support_email }}</a></p>
+      <p class="meta">Politica relacionada: <a href="/privacy">/privacy</a></p>
+      <p class="meta">Terminos: <a href="/terms">/terms</a></p>
     </section>
 
     <footer class="site-footer">
-      <span>© 2026 K'an Logic Systems</span>
+      <span>© 2026 {{ legal.company_name }}</span>
       <span class="footer-links">
         <a href="/privacy">Privacidad</a>
         <a href="/terms">Terminos</a>
+        <a href="/contact">Contacto</a>
+        <a href="/about">Nosotros</a>
         <a href="/data-deletion">Eliminacion de datos</a>
       </span>
     </footer>

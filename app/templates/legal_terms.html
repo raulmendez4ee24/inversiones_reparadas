@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Terminos del servicio | K'an Logic Systems</title>
+  <title>Terminos y condiciones | {{ legal.company_name }}</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
@@ -11,65 +11,123 @@
     <header class="report-header">
       <div>
         <p class="pill">Legal</p>
-        <h1>Terminos del servicio</h1>
-        <p class="lead">Condiciones basicas para usar el diagnostico, portal e implementacion.</p>
+        <h1>Terminos y condiciones</h1>
+        <p class="lead">Reglas de uso del diagnostico, portal, onboarding e implementaciones de {{ legal.company_name }}.</p>
       </div>
       <a class="ghost" href="/">Inicio</a>
     </header>
 
     <section class="card">
-      <h3>1) Servicio</h3>
+      <h3>1) Aceptacion de los terminos</h3>
       <p class="meta">
-        K'an Logic Systems ofrece (a) un diagnostico automatico y (b) servicios de implementacion/automatizacion
-        bajo solicitud. El diagnostico es una recomendacion basada en la informacion que proporcionas.
+        Al usar este sitio y/o solicitar servicios, aceptas estos terminos y nuestra
+        <a href="/privacy">Politica de privacidad</a>.
       </p>
     </section>
 
     <section class="card">
-      <h3>2) Alcance y limites</h3>
+      <h3>2) Servicios ofrecidos</h3>
       <ul>
-        <li>La automatizacion se enfoca en procesos administrativos, repetitivos y medibles.</li>
-        <li>No garantizamos resultados identicos en todos los negocios: dependen del volumen, herramientas y operacion.</li>
-        <li>Si tu rubro requiere validaciones especiales (salud/finanzas/datos sensibles), se ajusta el flujo y permisos.</li>
+        <li>Diagnostico de eficiencia operativa con estimaciones de impacto economico.</li>
+        <li>Implementaciones express (chatbot/agendas) y proyectos por fases (Lite/Growth/Elite).</li>
+        <li>Onboarding, integraciones y activacion de flujos en plataformas de terceros.</li>
+      </ul>
+      <p class="meta">Las recomendaciones no sustituyen asesoria legal, fiscal o financiera especializada.</p>
+    </section>
+
+    <section class="card">
+      <h3>3) Cotizacion, alcance y entregables</h3>
+      <ul>
+        <li>Cada propuesta se define segun el contexto declarado por el cliente.</li>
+        <li>El alcance final queda formalizado por escrito antes de iniciar implementacion.</li>
+        <li>Cambios de alcance pueden modificar tiempos, costo y secuencia de entregables.</li>
       </ul>
     </section>
 
     <section class="card">
-      <h3>3) Accesos e integraciones</h3>
+      <h3>4) Responsabilidades del cliente</h3>
       <ul>
-        <li>El cliente es responsable de otorgar permisos adecuados para conectar sus sistemas (por invitacion o autorizacion guiada).</li>
-        <li>El cliente puede revocar accesos cuando quiera; esto puede detener automatizaciones.</li>
-        <li>Recomendamos permisos minimos necesarios para operar el flujo.</li>
+        <li>Proporcionar informacion veraz y permisos necesarios para operar integraciones.</li>
+        <li>Mantener control de sus cuentas, contrasenas y credenciales compartidas.</li>
+        <li>Designar un responsable interno para aprobaciones y pruebas de aceptacion.</li>
       </ul>
     </section>
 
     <section class="card">
-      <h3>4) Pagos</h3>
+      <h3>5) Plataformas de terceros</h3>
       <p class="meta">
-        Si contratas implementacion, se formaliza por contrato y se define el pago (implementacion unica y/o
-        mantenimiento mensual) antes de iniciar en produccion.
+        Parte del servicio depende de APIs y plataformas externas (por ejemplo Meta, proveedores de correo,
+        nube, pagos o CRMs). Cambios o caidas de terceros pueden afectar el servicio sin que ello implique
+        incumplimiento automatico de nuestra parte.
       </p>
     </section>
 
     <section class="card">
-      <h3>5) Uso aceptable</h3>
+      <h3>6) Pagos, cancelaciones y reembolsos</h3>
       <ul>
-        <li>No uses el sistema para spam, fraude o actividades ilegales.</li>
-        <li>No intentes acceder a cuentas o datos de terceros sin autorizacion.</li>
+        <li>Las condiciones de pago se establecen en la propuesta o contrato aplicable.</li>
+        <li>El inicio de implementacion requiere aceptacion expresa del cliente y pago correspondiente.</li>
+        <li>Los reembolsos, cuando procedan, se evaluan segun avance, consumos y costos de terceros.</li>
       </ul>
     </section>
 
     <section class="card">
-      <h3>6) Contacto</h3>
-      <p class="meta">Soporte: <strong>{{ support_email }}</strong></p>
-      <p class="meta">Ver tambien: <a href="/privacy">Privacidad</a>.</p>
+      <h3>7) Propiedad intelectual</h3>
+      <ul>
+        <li>Las marcas, nombres, disenos y contenido del sitio pertenecen a {{ legal.company_name }} o sus licenciantes.</li>
+        <li>El cliente conserva propiedad de sus datos y activos preexistentes.</li>
+        <li>Los componentes entregados se licencian/ceden segun lo acordado contractualmente.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>8) Confidencialidad y datos</h3>
+      <p class="meta">
+        Tratamos la informacion del cliente como confidencial y aplicamos controles razonables de seguridad.
+        Revisa detalles en <a href="/privacy">Privacidad</a> y <a href="/data-deletion">Eliminacion de datos</a>.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3>9) Limitacion de responsabilidad</h3>
+      <ul>
+        <li>No garantizamos resultados identicos para todos los negocios.</li>
+        <li>El rendimiento depende de factores operativos, adopcion interna y calidad de datos del cliente.</li>
+        <li>No somos responsables por danos derivados de uso indebido de cuentas o incumplimiento del cliente.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>10) Uso prohibido</h3>
+      <ul>
+        <li>Uso para fraude, spam, suplantacion, acoso o actividades ilegales.</li>
+        <li>Intentos de acceso no autorizado a sistemas o datos de terceros.</li>
+        <li>Ingenieria inversa o abuso de infraestructura sin autorizacion escrita.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>11) Ley aplicable y jurisdiccion</h3>
+      <p class="meta">
+        Estos terminos se interpretan conforme a la normativa aplicable en {{ legal.legal_country }},
+        salvo pacto distinto por escrito entre las partes.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3>12) Contacto legal y soporte</h3>
+      <p class="meta">Email: <a href="mailto:{{ legal.support_email }}">{{ legal.support_email }}</a></p>
+      <p class="meta">Pagina de contacto: <a href="/contact">/contact</a></p>
+      <p class="meta">Nosotros: <a href="/about">/about</a></p>
     </section>
 
     <footer class="site-footer">
-      <span>© 2026 K'an Logic Systems</span>
+      <span>© 2026 {{ legal.company_name }}</span>
       <span class="footer-links">
         <a href="/privacy">Privacidad</a>
         <a href="/terms">Terminos</a>
+        <a href="/contact">Contacto</a>
+        <a href="/about">Nosotros</a>
         <a href="/data-deletion">Eliminacion de datos</a>
       </span>
     </footer>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Politica de privacidad | K'an Logic Systems</title>
+  <title>Politica de privacidad | {{ legal.company_name }}</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
@@ -12,80 +12,122 @@
       <div>
         <p class="pill">Legal</p>
         <h1>Politica de privacidad</h1>
-        <p class="lead">Como tratamos tu informacion cuando usas nuestro diagnostico y onboarding.</p>
+        <p class="lead">Como recopilamos, usamos, protegemos y eliminamos datos en {{ legal.company_name }}.</p>
       </div>
       <a class="ghost" href="/">Inicio</a>
     </header>
 
     <section class="card">
-      <h3>1) Que datos recopilamos</h3>
-      <ul>
-        <li><strong>Datos del negocio</strong>: giro/industria, region, descripcion de procesos, cuellos de botella, herramientas.</li>
-        <li><strong>Datos de contacto</strong> (si los proporcionas): correo, canal preferido.</li>
-        <li><strong>Preferencias</strong>: modulos seleccionados, tipo de bot, forma de entrega (WhatsApp/PDF/email).</li>
-        <li><strong>Autorizaciones de integracion</strong> (solo si decides implementacion): permisos que nos otorgas para conectar sistemas (ej. WhatsApp/Meta/CRM).</li>
-        <li><strong>Datos tecnicos</strong>: logs minimos para diagnosticar errores (fecha/hora, endpoint, tipo de error).</li>
-      </ul>
-      <p class="meta">
-        Recomendacion: comparte accesos con <strong>usuarios tecnicos</strong> y permisos limitados; evita contrasenas personales.
-      </p>
+      <h3>1) Responsable del tratamiento</h3>
+      <p class="meta"><strong>Marca comercial:</strong> {{ legal.company_name }}</p>
+      <p class="meta"><strong>Razon social:</strong> {{ legal.company_legal_name }}</p>
+      <p class="meta"><strong>Correo de privacidad:</strong> <a href="mailto:{{ legal.support_email }}">{{ legal.support_email }}</a></p>
+      <p class="meta"><strong>Domicilio de referencia:</strong> {{ legal.legal_address }}</p>
+      <p class="meta"><strong>Fecha de vigencia:</strong> {{ legal.privacy_effective_date }}</p>
     </section>
 
     <section class="card">
-      <h3>2) Para que los usamos</h3>
+      <h3>2) Datos que recopilamos</h3>
       <ul>
-        <li>Generar tu auditoria IA (fricciones, ROI estimado, modulos sugeridos y plan de trabajo).</li>
-        <li>Preparar la implementacion (conectar integraciones, validar accesos y armar flujos en n8n).</li>
-        <li>Darte acceso al portal para seguimiento (estatus, entregables y configuraciones).</li>
-        <li>Soporte y mejora del servicio (correccion de fallas y optimizacion del flujo).</li>
+        <li><strong>Contacto:</strong> correo, WhatsApp, canal preferido y consentimiento de contacto.</li>
+        <li><strong>Operacion del negocio:</strong> industria, equipo, volumen, herramientas y procesos.</li>
+        <li><strong>Implementacion:</strong> modulos elegidos, preferencias de entrega y consentimientos.</li>
+        <li><strong>Tecnicos:</strong> eventos de uso, diagnosticos de error, IP y user-agent para seguridad.</li>
+        <li><strong>Integraciones:</strong> tokens/permisos solo cuando el cliente autoriza conexiones.</li>
       </ul>
     </section>
 
     <section class="card">
-      <h3>3) Terceros y APIs</h3>
-      <p class="meta">
-        Para automatizar, a veces conectamos servicios de terceros (por ejemplo Meta/WhatsApp, CRMs, ERPs, email, n8n).
-        Cada proveedor tiene sus propias politicas. Solo enviamos lo necesario para que el flujo funcione.
-      </p>
+      <h3>3) Finalidades del uso de datos</h3>
+      <p class="meta"><strong>Finalidades primarias (necesarias):</strong></p>
       <ul>
-        <li><strong>Meta/WhatsApp/Messenger</strong>: para mensajeria y webhooks (si lo solicitas).</li>
-        <li><strong>Herramientas internas</strong> (n8n): orquestacion de flujos y automatizaciones.</li>
-        <li><strong>LLM (opcional)</strong>: si activas analisis con IA, parte del texto se envia al modelo para generar recomendaciones.</li>
+        <li>Generar auditorias, estimaciones de ROI y propuesta de implementacion.</li>
+        <li>Activar portal, onboarding, pagos e implementaciones solicitadas.</li>
+        <li>Operar soporte tecnico, seguridad y continuidad del servicio.</li>
+      </ul>
+      <p class="meta"><strong>Finalidades secundarias (opcionales):</strong></p>
+      <ul>
+        <li>Comunicados de novedades, ofertas o mejoras de servicio.</li>
+      </ul>
+      <p class="meta">Puedes desactivar finalidades secundarias en cualquier momento por correo.</p>
+    </section>
+
+    <section class="card">
+      <h3>4) Base legal y consentimiento</h3>
+      <ul>
+        <li>Consentimiento expreso del titular al enviar formularios y activar integraciones.</li>
+        <li>Ejecucion de relacion comercial cuando solicitas implementacion/pago.</li>
+        <li>Interes legitimo para proteger la plataforma contra fraude, abuso o fallas.</li>
       </ul>
     </section>
 
     <section class="card">
-      <h3>4) Almacenamiento y retencion</h3>
+      <h3>5) Transferencias y encargados</h3>
       <p class="meta">
-        Guardamos la informacion en una base de datos para poder generar el reporte, habilitar el onboarding y dar seguimiento.
-        Conservamos datos el tiempo necesario para operar el servicio y/o segun lo que se acuerde en la implementacion.
+        Para prestar el servicio podemos usar proveedores tecnologicos (por ejemplo nube, mensajeria,
+        IA e integraciones). Compartimos solo lo estrictamente necesario para operar el flujo.
       </p>
+      <ul>
+        <li>Meta (WhatsApp/Messenger), cuando el cliente lo habilita.</li>
+        <li>Plataformas de nube, automatizacion y correo.</li>
+        <li>Proveedores de pago y facturacion, cuando aplica.</li>
+      </ul>
+      <p class="meta">Cada proveedor mantiene sus propios terminos y politicas.</p>
     </section>
 
     <section class="card">
-      <h3>5) Seguridad</h3>
+      <h3>6) Conservacion y seguridad</h3>
       <ul>
-        <li>Recomendamos usar permisos revocables y el minimo acceso necesario.</li>
-        <li>Los datos sensibles se guardan cifrados en la base de datos; las contrasenas del portal se almacenan hasheadas.</li>
-        <li>El portal usa sesiones seguras; no compartas tu acceso con terceros.</li>
-        <li>Puedes solicitar eliminacion de datos en cualquier momento.</li>
+        <li>Conservamos datos mientras exista relacion de servicio o necesidad operativa legitima.</li>
+        <li>Aplicamos controles de acceso, segregacion de permisos y cifrado en datos sensibles.</li>
+        <li>Las credenciales del portal se resguardan con hash; no almacenamos contrasenas en texto plano.</li>
+        <li>Recomendamos uso de cuentas tecnicas con permisos revocables y minimo privilegio.</li>
       </ul>
     </section>
 
     <section class="card">
-      <h3>6) Derechos y contacto</h3>
+      <h3>7) Derechos del titular (acceso, rectificacion, cancelacion y oposicion)</h3>
       <p class="meta">
-        Para dudas, correccion o eliminacion de datos escribe a <strong>{{ support_email }}</strong>.
-        Incluye tu empresa y, si lo tienes, tu folio.
+        Puedes solicitar acceso, correccion o eliminacion de datos escribiendo a
+        <a href="mailto:{{ legal.support_email }}">{{ legal.support_email }}</a>.
       </p>
-      <p class="meta">Ver tambien: <a href="/data-deletion">Eliminacion de datos</a>.</p>
+      <ul>
+        <li>Incluye empresa, correo de registro y folio (si lo tienes).</li>
+        <li>Si aplica, te pediremos validacion de identidad para proteger tu informacion.</li>
+        <li>Para eliminacion definitiva, revisa <a href="/data-deletion">Eliminacion de datos</a>.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>8) Menores de edad</h3>
+      <p class="meta">
+        Nuestros servicios estan dirigidos a personas y empresas con capacidad legal para contratar.
+        No recolectamos intencionalmente datos de menores.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3>9) Cambios a esta politica</h3>
+      <p class="meta">
+        Podemos actualizar esta politica por cambios regulatorios, operativos o tecnologicos.
+        Publicaremos la version vigente en esta misma URL con nueva fecha de actualizacion.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3>10) Contacto</h3>
+      <p class="meta">Email: <a href="mailto:{{ legal.support_email }}">{{ legal.support_email }}</a></p>
+      <p class="meta">Pagina de contacto: <a href="/contact">/contact</a></p>
+      <p class="meta">Terminos aplicables: <a href="/terms">/terms</a></p>
     </section>
 
     <footer class="site-footer">
-      <span>© 2026 K'an Logic Systems</span>
+      <span>© 2026 {{ legal.company_name }}</span>
       <span class="footer-links">
         <a href="/privacy">Privacidad</a>
         <a href="/terms">Terminos</a>
+        <a href="/contact">Contacto</a>
+        <a href="/about">Nosotros</a>
         <a href="/data-deletion">Eliminacion de datos</a>
       </span>
     </footer>

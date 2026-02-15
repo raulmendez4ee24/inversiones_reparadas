@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contacto | {{ legal.company_name }}</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="page report legal">
+    <header class="report-header">
+      <div>
+        <p class="pill">Soporte</p>
+        <h1>Contacto</h1>
+        <p class="lead">Canales oficiales para ventas, soporte tecnico, cumplimiento y revisiones de Meta.</p>
+      </div>
+      <a class="ghost" href="/">Inicio</a>
+    </header>
+
+    <section class="report-grid">
+      <article class="card">
+        <h3>Canales oficiales</h3>
+        <p class="meta"><strong>Email:</strong> <a href="mailto:{{ legal.support_email }}">{{ legal.support_email }}</a></p>
+        <p class="meta"><strong>Telefono:</strong> <a href="tel:{{ legal.support_phone | replace(' ', '') }}">{{ legal.support_phone }}</a></p>
+        {% if legal.support_whatsapp_clean %}
+        <p class="meta">
+          <strong>WhatsApp:</strong>
+          <a href="https://wa.me/{{ legal.support_whatsapp_clean }}" target="_blank" rel="noopener noreferrer">+{{ legal.support_whatsapp_clean }}</a>
+        </p>
+        {% endif %}
+        <p class="meta"><strong>Horario:</strong> {{ legal.support_hours }}</p>
+      </article>
+
+      <article class="card">
+        <h3>Datos legales</h3>
+        <p class="meta"><strong>Razon social:</strong> {{ legal.company_legal_name }}</p>
+        <p class="meta"><strong>Domicilio:</strong> {{ legal.legal_address }}</p>
+        <p class="meta"><strong>Pais:</strong> {{ legal.legal_country }}</p>
+        <p class="meta"><strong>ID fiscal:</strong> {{ legal.legal_tax_id }}</p>
+      </article>
+    </section>
+
+    <section class="card">
+      <h3>Contacto para App Review de Meta</h3>
+      <p class="meta">
+        Si Meta solicita verificaciones durante el App Review o revisiones de permisos,
+        utiliza este canal:
+      </p>
+      <ul>
+        <li>Email principal: <strong>{{ legal.support_email }}</strong></li>
+        <li>Asunto sugerido: <strong>Meta App Review - {{ legal.company_name }}</strong></li>
+        <li>Incluye: App ID, URL afectada, captura del error y fecha/hora.</li>
+      </ul>
+      <p class="meta">Tiempo estimado de primera respuesta: 24-48 horas habiles.</p>
+    </section>
+
+    <section class="card">
+      <h3>Paginas de cumplimiento</h3>
+      <p class="meta">Referencias publicas para politicas y derechos de usuario:</p>
+      <div class="founder-actions">
+        <a class="button-link" href="/privacy">Politica de privacidad</a>
+        <a class="ghost" href="/terms">Terminos y condiciones</a>
+        <a class="ghost" href="/data-deletion">Eliminacion de datos</a>
+        <a class="ghost" href="/about">Nosotros</a>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <span>© 2026 {{ legal.company_name }}</span>
+      <span class="footer-links">
+        <a href="/privacy">Privacidad</a>
+        <a href="/terms">Terminos</a>
+        <a href="/contact">Contacto</a>
+        <a href="/about">Nosotros</a>
+        <a href="/data-deletion">Eliminacion de datos</a>
+      </span>
+    </footer>
+  </main>
+</body>
+</html>

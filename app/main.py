@@ -117,6 +117,25 @@ def _get_founder_info():
     }
 
 
+def _legal_contact_info() -> dict[str, str]:
+    founder = _get_founder_info()
+    support_whatsapp = os.getenv("SUPPORT_WHATSAPP", "").strip() or founder.get("whatsapp", "")
+    support_whatsapp_clean = support_whatsapp.replace("+", "").replace(" ", "")
+    return {
+        "company_name": os.getenv("LEGAL_BRAND_NAME", "K'an Logic Systems").strip(),
+        "company_legal_name": os.getenv("LEGAL_COMPANY_NAME", "K'an Logic Systems").strip(),
+        "support_email": os.getenv("SUPPORT_EMAIL", "soporte@kanlogicsystems.com").strip(),
+        "support_phone": os.getenv("SUPPORT_PHONE", "+52 55 0000 0000").strip(),
+        "support_whatsapp": support_whatsapp,
+        "support_whatsapp_clean": support_whatsapp_clean,
+        "support_hours": os.getenv("SUPPORT_HOURS", "Lunes a Viernes, 9:00 a 18:00 (CDMX)").strip(),
+        "legal_address": os.getenv("LEGAL_ADDRESS", "Ciudad de Mexico, Mexico").strip(),
+        "legal_country": os.getenv("LEGAL_COUNTRY", "Mexico").strip(),
+        "legal_tax_id": os.getenv("LEGAL_TAX_ID", "No publicado").strip(),
+        "privacy_effective_date": os.getenv("LEGAL_EFFECTIVE_DATE", "15 de febrero de 2026").strip(),
+    }
+
+
 def _meta_oauth_config() -> dict[str, str]:
     scopes = os.getenv(
         "META_SCOPES",
@@ -1044,14 +1063,44 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/about", response_class=HTMLResponse)
+async def about(request: Request):
+    return templates.TemplateResponse(
+        "about.html",
+        {
+            "request": request,
+            "founder": _get_founder_info(),
+            "legal": _legal_contact_info(),
+        },
+    )
+
+
+@app.get("/nosotros")
+async def nosotros():
+    return RedirectResponse(url="/about", status_code=302)
+
+
+@app.get("/contact", response_class=HTMLResponse)
+async def contact(request: Request):
+    return templates.TemplateResponse(
+        "contact.html",
+        {
+            "request": request,
+            "founder": _get_founder_info(),
+            "legal": _legal_contact_info(),
+        },
+    )
+
+
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy(request: Request):
-    support_email = os.getenv("SUPPORT_EMAIL", "soporte@kanlogicsystems.com")
+    legal = _legal_contact_info()
     return templates.TemplateResponse(
         "legal_privacy.html",
         {
             "request": request,
-            "support_email": support_email,
+            "support_email": legal["support_email"],
+            "legal": legal,
             "founder": _get_founder_info(),
         },
     )
@@ -1059,12 +1108,13 @@ async def privacy(request: Request):
 
 @app.get("/terms", response_class=HTMLResponse)
 async def terms(request: Request):
-    support_email = os.getenv("SUPPORT_EMAIL", "soporte@kanlogicsystems.com")
+    legal = _legal_contact_info()
     return templates.TemplateResponse(
         "legal_terms.html",
         {
             "request": request,
-            "support_email": support_email,
+            "support_email": legal["support_email"],
+            "legal": legal,
             "founder": _get_founder_info(),
         },
     )
@@ -1072,12 +1122,13 @@ async def terms(request: Request):
 
 @app.get("/data-deletion", response_class=HTMLResponse)
 async def data_deletion(request: Request):
-    support_email = os.getenv("SUPPORT_EMAIL", "soporte@kanlogicsystems.com")
+    legal = _legal_contact_info()
     return templates.TemplateResponse(
         "legal_data_deletion.html",
         {
             "request": request,
-            "support_email": support_email,
+            "support_email": legal["support_email"],
+            "legal": legal,
             "founder": _get_founder_info(),
         },
     )
