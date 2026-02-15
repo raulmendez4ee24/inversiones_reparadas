@@ -416,6 +416,85 @@ h4 {
   flex-wrap: wrap;
 }
 
+.route-pick {
+  margin-bottom: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.route-pick:hover {
+  transform: none;
+}
+
+.route-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.route-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.route-card h3 {
+  font-size: 1.08rem;
+}
+
+.route-card .ops-list {
+  margin: 0;
+  gap: 6px;
+}
+
+.deliverable-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.post-pay-flow {
+  margin-bottom: 18px;
+}
+
+.flow-steps {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.flow-step {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f8fbff;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.flow-step strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.98rem;
+  color: #17326f;
+}
+
+.flow-step p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.case-grid {
+  margin-bottom: 18px;
+}
+
 .impact-ribbon {
   margin-bottom: 18px;
   display: grid;
@@ -1370,7 +1449,10 @@ button:hover,
   .offer-strip,
   .impact-ribbon,
   .ops-grid,
+  .route-grid,
   .quick-offer-grid,
+  .flow-steps,
+  .case-grid,
   .preview-grid,
   .grid,
   .module-grid,
@@ -1612,6 +1694,7 @@ button:hover,
   .module-choice,
   .offer-item,
   .impact-item,
+  .route-card,
   .quick-offer-card {
     padding: 12px;
   }
