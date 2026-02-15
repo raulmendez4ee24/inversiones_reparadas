@@ -1062,6 +1062,7 @@ button:hover,
 }
 
 .founder-photo {
+  margin: 0;
   width: 150px;
   height: 150px;
   border-radius: 20px;
