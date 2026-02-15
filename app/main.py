@@ -111,7 +111,7 @@ def _get_founder_info():
             "FOUNDER_BIO",
             "En K'an construimos el sistema nervioso digital de tu empresa. Fusionamos inteligencia artificial avanzada con seguridad criptográfica de grado militar (AES-256). Tu información es sagrada y tu tiempo es el activo más valioso. Diseñamos para escalar.",
         ),
-        "photo_url": os.getenv("FOUNDER_PHOTO_URL", "https://ui-avatars.com/api/?name=Raul+Mendez&background=111827&color=fff&size=256&font-size=0.33"),
+        "photo_url": os.getenv("FOUNDER_PHOTO_URL", "/static/founder.svg"),
         "whatsapp": os.getenv("FOUNDER_WHATSAPP", "").strip(),
         "calendar_url": calendar_url,
     }
