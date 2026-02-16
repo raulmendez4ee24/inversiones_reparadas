@@ -331,7 +331,7 @@ def _build_quick_payload(
             ),
             systems="WhatsApp",
             goals="Automatizar agenda, confirmaciones y seguimiento por WhatsApp.",
-            budget_range="$3,500 MXN (precio fijo express)",
+            budget_range="$3,500 MXN/mes (plan express mensual)",
             contact_email=email,
             contact_whatsapp=whatsapp,
         )
@@ -354,7 +354,7 @@ def _build_quick_payload(
         ),
         systems="WhatsApp",
         goals="Activar chatbot rapido para responder FAQ y captar datos de contacto.",
-        budget_range="$2,000 MXN (precio fijo express)",
+        budget_range="$2,000 MXN/mes (plan express mensual)",
         contact_email=email,
         contact_whatsapp=whatsapp,
     )

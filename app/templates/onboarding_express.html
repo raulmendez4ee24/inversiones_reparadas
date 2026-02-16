@@ -28,7 +28,7 @@
         <div class="stepper-header">
           <div>
             <p class="pill mini">Flujo corto</p>
-            <h3>Cuenta + pago y listo</h3>
+            <h3>Cuenta + mensualidad y listo</h3>
           </div>
           <div class="stepper-counter">
             Paso <span class="step-current">1</span> de <span class="step-total">2</span>
@@ -48,8 +48,8 @@
           <h3>Cuenta de acceso (obligatorio)</h3>
           <p class="meta">Tu paquete ya esta definido: <strong>{{ express_label }}</strong>.</p>
           <div class="kpi">
-            <span>Precio fijo express</span>
-            <strong>${{ express_price_mxn }} MXN</strong>
+            <span>Precio mensual express</span>
+            <strong>${{ express_price_mxn }} MXN/mes</strong>
           </div>
           <div class="grid">
             <label>
@@ -82,13 +82,13 @@
 
       <section class="form-step" data-step="2">
         <section class="card">
-          <h3>Pago express</h3>
+          <h3>Pago mensual express</h3>
           <p class="meta">No necesitas seleccionar modulos: este paquete ya viene listo para activarse.</p>
           <div class="report-grid">
             <article class="card money solution">
               <h3>{{ express_label }}</h3>
-              <p class="money-amount">${{ express_price_mxn }} MXN</p>
-              <p class="meta">Inversion inicial de implementacion.</p>
+              <p class="money-amount">${{ express_price_mxn }} MXN/mes</p>
+              <p class="meta">Mensualidad de activacion y soporte basico.</p>
             </article>
             <article class="card">
               <h3>Incluye</h3>
@@ -109,7 +109,7 @@
           </label>
           <label class="consent">
             <input type="checkbox" name="consent" required />
-            <span>Acepto contrato y pago para iniciar esta implementacion express.</span>
+            <span>Acepto contrato y pago mensual para iniciar esta implementacion express.</span>
           </label>
           <label class="consent">
             <input type="checkbox" name="access_consent" required />
@@ -126,7 +126,7 @@
       <div class="step-actions">
         <button type="button" class="ghost-btn step-prev">Atras</button>
         <button type="button" class="step-next">Siguiente</button>
-        <button type="submit" class="step-submit">Iniciar sesion y pagar</button>
+        <button type="submit" class="step-submit">Iniciar sesion y activar mensualidad</button>
       </div>
     </form>
 

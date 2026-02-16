@@ -55,7 +55,7 @@
         {% endif %}
         {% if is_express %}
         <p class="meta">
-          Paso final: completa tu pago express y activamos tu implementacion.
+          Paso final: completa tu pago mensual express y activamos tu implementacion.
         </p>
         {% else %}
         <p class="meta">
@@ -137,8 +137,13 @@
             <strong>${{ output.roi_mxn_saved_per_month | round(0) }} MXN</strong>
           </div>
           <div class="kpi">
+            {% if is_express %}
+            <span>Mensualidad (MXN/mes)</span>
+            <strong>${{ pay_amount_mxn }} MXN/mes</strong>
+            {% else %}
             <span>Inversion unica (MXN)</span>
             <strong>${{ pay_amount_mxn }} MXN</strong>
+            {% endif %}
           </div>
         </article>
       </section>
@@ -162,7 +167,11 @@
       <p class="pill mini">Pago seguro</p>
       <h3 id="mpCheckoutTitle">Checkout Mercado Pago</h3>
       <p class="meta">
+        {% if is_express %}
+        Total mensual: <strong>${{ pay_amount_mxn }} MXN/mes</strong>.
+        {% else %}
         Total: <strong>${{ pay_amount_mxn }} MXN</strong>.
+        {% endif %}
       </p>
       <div id="mpCheckoutContainer"></div>
       <p class="meta" id="mpCheckoutStatus"></p>
