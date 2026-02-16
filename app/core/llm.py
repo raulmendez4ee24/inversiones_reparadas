@@ -111,6 +111,36 @@ def _extract_json(text: str) -> Optional[dict]:
         return None
 
 
+def _looks_generic_summary(summary: str, payload: BusinessInput) -> bool:
+    text = (summary or "").lower().strip()
+    if not text:
+        return True
+
+    generic_phrases = [
+        "optimizar procesos",
+        "transformacion digital",
+        "mejorar eficiencia",
+        "solucion integral",
+        "crecimiento sostenible",
+    ]
+    has_generic = any(phrase in text for phrase in generic_phrases)
+    if not has_generic:
+        return False
+
+    evidence_raw = (
+        f"{payload.industry} {payload.business_focus} {payload.bottlenecks} "
+        f"{payload.systems} {payload.goals}"
+    ).lower()
+    candidates = []
+    for token in evidence_raw.replace("/", " ").replace(",", " ").split():
+        clean = token.strip(" .;:()[]{}'\"")
+        if len(clean) >= 5 and clean not in candidates:
+            candidates.append(clean)
+    evidence_tokens = candidates[:10]
+    has_evidence = any(token in text for token in evidence_tokens)
+    return not has_evidence
+
+
 def _call_gemini(prompt: str, max_tokens: int = 520) -> Optional[str]:
     text, _, _ = generate_content(
         prompt=prompt,
@@ -216,8 +246,9 @@ def consultant_diagnosis(
         recommended_guess or [],
         optional_guess or [],
     )
+    detected_primary = (friction_points_guess[0] if friction_points_guess else "") or (payload.bottlenecks or "").strip()[:140]
     fallback_result = {
-        "primary_bottleneck": (payload.bottlenecks or "").strip()[:140] or (friction_points_guess[0] if friction_points_guess else ""),
+        "primary_bottleneck": detected_primary,
         "pain_points": friction_points_guess or ["Hay tiempos muertos y poca visibilidad: hoy no sabes que pasa en tiempo real."],
         "recommended_modules": recommended_guess or [],
         "optional_modules": optional_guess or [],
@@ -254,8 +285,11 @@ def consultant_diagnosis(
         "Escribe con autoridad, directo y empoderador (cero tecnicismos, enfoque en resultados y seguridad). "
         "Reglas:\n"
         "- Detecta el cuello de botella principal (1), y explica por que es la palanca #1.\n"
+        "- Cita al menos 2 evidencias del input del cliente (proceso, herramienta o dolor) para justificar cada recomendacion.\n"
         "- No recomiendes WhatsApp/chatbots si el dolor NO menciona ventas/leads/mensajes/soporte/citas.\n"
         "- No recomiendes Shopify/ERP si NO se menciona ecommerce/inventario.\n"
+        "- Si es micro (<=5 personas, bajo volumen y herramientas simples), evita sobredimensionar: inicia con alcance pequeno.\n"
+        "- No uses frases vacias como 'optimizar procesos' o 'transformacion digital' sin accion concreta.\n"
         "- Siempre incluye: riesgo de error humano, costo de oportunidad (ventas/atencion), costo de rotacion (reentrenamiento) y escalabilidad (evitar contratar mas).\n"
         "- Traduce tiempo a jornadas completas (8h) y a dias de sueldo.\n"
         "- Elige modulos SOLO del catalogo (usa el nombre exacto).\n\n"
@@ -292,7 +326,7 @@ def consultant_diagnosis(
         + "\n".join(catalog_lines)
         + "\n\n"
         "complexity_assessment: Objeto con { \"level\": \"low\"|\"medium\"|\"high\", \"reasoning\": \"breve explicacion\" }. "
-        "Define el nivel de complejidad/costo. "
+        "Define el nivel de complejidad/costo y agrega 2 evidencias concretas del input en reasoning. "
         "'low': Micro-negocio o proceso aislado simple (ej. tienda local). "
         "'medium': PyME estandar. "
         "'high': Corporativo o integraciones complejas.\n\n"
@@ -332,6 +366,8 @@ def consultant_diagnosis(
     opt_names = [str(item).strip() for item in opt if str(item).strip() in module_set and str(item).strip() not in rec_names][:4]
 
     summary = str(parsed.get("summary") or "").strip() or fallback_result["summary"]
+    if _looks_generic_summary(summary, payload):
+        summary = fallback_result["summary"]
 
     def _list(name: str, default: list) -> list:
         value = parsed.get(name)

@@ -8,6 +8,8 @@ from .llm import consultant_diagnosis
 from .models import AnalysisOutput, AutomationModule, BusinessInput, PricingQuote, RoadmapPhase
 from .modules import catalog
 from .pricing import (
+    SERVICE_TIER_RANGES_MXN,
+    ServiceTierDecision,
     decide_service_tier,
     enforce_irresistible_roi,
     estimate_complexity_level,
@@ -306,6 +308,101 @@ def _estimate_savings(payload: BusinessInput, module_count: int) -> float:
     return weekly_saved * 4.33
 
 
+def _pricing_keys_from_modules(module_names: List[str]) -> list[str]:
+    mapped: list[str] = []
+    for name in module_names:
+        text = _normalize(name or "")
+        if any(key in text for key in ["whatsapp", "chatbot", "agenda", "citas", "ventas", "soporte"]):
+            if "whatsapp_ventas" not in mapped:
+                mapped.append("whatsapp_ventas")
+        if any(key in text for key in ["inventario", "shopify", "erp", "stock"]):
+            if "inventarios_datos" not in mapped:
+                mapped.append("inventarios_datos")
+        if any(key in text for key in ["dashboard", "reporte", "kpi", "indicador"]):
+            if "dashboards_reportes" not in mapped:
+                mapped.append("dashboards_reportes")
+        if any(key in text for key in ["carpeta", "archivo", "administrativa", "onboarding de personal"]):
+            if "eficiencia_administrativa" not in mapped:
+                mapped.append("eficiencia_administrativa")
+        if any(key in text for key in ["documento", "factur", "contrato", "pdf", "firma", "recibo"]):
+            if "documentos_inteligentes" not in mapped:
+                mapped.append("documentos_inteligentes")
+        if any(key in text for key in ["conciliacion", "banco", "tesoreria", "contabilidad"]):
+            if "conciliacion_automatica" not in mapped:
+                mapped.append("conciliacion_automatica")
+    return mapped
+
+
+def _resolve_pricing_modules(
+    payload: BusinessInput,
+    recommended_names: List[str],
+    fallback_modules: List[AutomationModule],
+) -> list[str]:
+    if payload.selected_modules:
+        return list(payload.selected_modules)
+
+    mapped = _pricing_keys_from_modules(recommended_names)
+    if mapped:
+        return mapped
+
+    mapped_fallback = _pricing_keys_from_modules([module.name for module in fallback_modules])
+    if mapped_fallback:
+        return mapped_fallback
+
+    return [module.name for module in fallback_modules]
+
+
+def _pricing_context_text(
+    payload: BusinessInput,
+    diagnosis: dict,
+    friction_points: List[str],
+) -> str:
+    parts = [
+        payload.bottlenecks,
+        payload.processes,
+        payload.systems,
+        payload.goals,
+        diagnosis.get("primary_bottleneck") or "",
+        " ".join(friction_points or []),
+        " ".join(diagnosis.get("opportunities") or []),
+    ]
+    return " ".join([item for item in parts if item])
+
+
+def _align_tier_to_setup_price(
+    setup_fee_mxn: int,
+    tier_decision: ServiceTierDecision,
+    roi_adjusted: bool,
+    min_tier_floor: str | None = None,
+) -> ServiceTierDecision:
+    if setup_fee_mxn >= tier_decision.min_price_mxn:
+        return tier_decision
+
+    tier_order = ("MICRO", "LITE", "GROWTH", "ELITE")
+    floor_index = 0
+    if min_tier_floor in tier_order:
+        floor_index = tier_order.index(min_tier_floor)
+
+    for tier_name in tier_order[floor_index:]:
+        low, high = SERVICE_TIER_RANGES_MXN[tier_name]
+        if setup_fee_mxn <= high:
+            if tier_name == tier_decision.tier:
+                return tier_decision
+            adjustment_note = (
+                "Se ajusto el nivel para mantener ROI >= 3x sin sobredimensionar el alcance."
+                if roi_adjusted
+                else "El alcance actual encaja mejor con este nivel."
+            )
+            return ServiceTierDecision(
+                tier=tier_name,
+                min_price_mxn=low,
+                max_price_mxn=high,
+                reason=f"{tier_decision.reason} {adjustment_note}",
+            )
+
+    return tier_decision
+
+
 def _build_roadmap(
     modules: List[AutomationModule],
     implementation_eta: str | None = None,
@@ -351,26 +448,27 @@ def run_analysis(payload: BusinessInput) -> AnalysisOutput:
     friction_points_guess = _pick_friction_points(payload)
     modules_guess, optional_modules_guess = _score_modules(payload)
     module_catalog = catalog()
+    pricing_module_signals = payload.selected_modules or _pricing_keys_from_modules([module.name for module in modules_guess])
 
     # ROI + pricing (Mexico-focused).
     roi = roi_breakdown(
         payload.manual_hours_per_week or 0,
         f"{payload.bottlenecks} {payload.processes} {payload.systems}",
-        payload.selected_modules,
+        pricing_module_signals,
     )
 
     # 1) Initial complexity seed.
     heuristic_level = estimate_complexity_level(payload.team_size)
-    selected_for_pricing = payload.selected_modules or [module.name for module in modules_guess]
+    selected_for_pricing_seed = payload.selected_modules or [module.name for module in modules_guess]
     seed_tier = decide_service_tier(
         payload,
         f"{payload.bottlenecks} {payload.processes} {payload.systems} {payload.goals}",
-        selected_for_pricing,
+        selected_for_pricing_seed,
         complexity_level=heuristic_level,
     )
     setup = suggest_setup_price(
         seed_tier,
-        selected_for_pricing,
+        selected_for_pricing_seed,
         payload.tooling_level,
         payload.transaction_volume,
     )
@@ -410,13 +508,32 @@ def run_analysis(payload: BusinessInput) -> AnalysisOutput:
         optional_guess=[module.name for module in optional_modules_guess],
     )
 
-    # 2) Refine complexity based on GPT signal.
+    # Final pain points + modules (GPT can override; fallback keeps heuristic selection).
+    friction_points = diagnosis.get("pain_points") or friction_points_guess
+    catalog_by_name = {module.name: module for module in module_catalog}
+    recommended_names = diagnosis.get("recommended_modules") or [module.name for module in modules_guess]
+    optional_names = diagnosis.get("optional_modules") or [module.name for module in optional_modules_guess]
+    modules = [catalog_by_name[name] for name in recommended_names if name in catalog_by_name]
+    if not modules:
+        modules = modules_guess or module_catalog[:3]
+    optional_modules = [catalog_by_name[name] for name in optional_names if name in catalog_by_name and name not in {m.name for m in modules}]
+
+    # 2) Refine complexity and pricing using diagnosis + bottleneck evidence.
+    selected_for_pricing = _resolve_pricing_modules(payload, recommended_names, modules_guess)
     gpt_level = diagnosis.get("complexity_level")
     final_level = gpt_level if gpt_level else heuristic_level
+    simple_scale = (
+        payload.team_size <= 5
+        and (payload.transaction_volume or "").strip().lower() in ("", "bajo")
+        and (payload.tooling_level or "").strip().lower() in ("", "solo_whatsapp", "excel")
+    )
+    if simple_scale and final_level == "medium" and len(selected_for_pricing) <= 2:
+        final_level = "low"
 
+    pricing_text = _pricing_context_text(payload, diagnosis, friction_points)
     tier_decision = decide_service_tier(
         payload,
-        f"{payload.bottlenecks} {payload.processes} {payload.systems} {payload.goals}",
+        pricing_text,
         selected_for_pricing,
         complexity_level=final_level,
     )
@@ -428,10 +545,16 @@ def run_analysis(payload: BusinessInput) -> AnalysisOutput:
     )
 
     loaded_hourly_cost = roi.loaded_daily_cost_mxn / HOURS_PER_DAY
-    estimated_hours_saved_per_month = _estimate_savings(payload, len(modules_guess))
+    estimated_hours_saved_per_month = _estimate_savings(payload, len(modules))
     estimated_hours_saved_per_year = estimated_hours_saved_per_month * 12
     roi_annual_formula = estimated_hours_saved_per_year * loaded_hourly_cost
     setup, roi_adjusted_to_3x, _ = enforce_irresistible_roi(base_setup, roi_annual_formula)
+    tier_floor = None
+    if payload.team_size >= 21 or (payload.transaction_volume or "").strip().lower() == "alto":
+        tier_floor = "GROWTH"
+    elif payload.team_size >= 6 or (payload.transaction_volume or "").strip().lower() == "medio":
+        tier_floor = "LITE"
+    tier_decision = _align_tier_to_setup_price(setup, tier_decision, roi_adjusted_to_3x, min_tier_floor=tier_floor)
     payback = setup / max(roi.total_mxn_per_month, 1)
     roi_multiple = roi_annual_formula / max(setup, 1)
     roi_annual_net = roi_annual_formula - setup
@@ -452,16 +575,6 @@ def run_analysis(payload: BusinessInput) -> AnalysisOutput:
         roi_adjusted_to_3x=roi_adjusted_to_3x,
     )
 
-    # Final pain points + modules (GPT can override; fallback keeps heuristic selection).
-    friction_points = diagnosis.get("pain_points") or friction_points_guess
-    catalog_by_name = {module.name: module for module in module_catalog}
-    recommended_names = diagnosis.get("recommended_modules") or [module.name for module in modules_guess]
-    optional_names = diagnosis.get("optional_modules") or [module.name for module in optional_modules_guess]
-    modules = [catalog_by_name[name] for name in recommended_names if name in catalog_by_name]
-    if not modules:
-        modules = modules_guess or module_catalog[:3]
-    optional_modules = [catalog_by_name[name] for name in optional_names if name in catalog_by_name and name not in {m.name for m in modules}]
-
     return AnalysisOutput(
         friction_points=friction_points,
         recommended_modules=modules,
@@ -469,7 +582,7 @@ def run_analysis(payload: BusinessInput) -> AnalysisOutput:
         opportunities=diagnosis.get("opportunities") or [],
         limitations=diagnosis.get("limitations") or [],
         data_needed=diagnosis.get("data_needed") or [],
-        primary_bottleneck=diagnosis.get("primary_bottleneck") or "",
+        primary_bottleneck=diagnosis.get("primary_bottleneck") or (friction_points[0] if friction_points else ""),
         # Reuse existing fields but the UI will show them in plain language:
         # - roi_hours_saved_per_month ~= horas manuales/mes (para que el UI lo convierta a jornadas de 8h)
         # - roi_mxn_saved_per_month ~= ahorro recurrente mensual (conservador, sin incluir oportunidad)

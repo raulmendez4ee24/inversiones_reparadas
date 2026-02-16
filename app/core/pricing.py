@@ -137,6 +137,22 @@ def decide_service_tier(
             reason="Micro-negocio con flujo simple y enfoque en automatizacion rapida.",
         )
 
+    # Guard rail: small businesses with low volume and simple tools should not jump to enterprise-like pricing.
+    if (
+        team_size <= 10
+        and volume in ("", "bajo")
+        and tooling in ("", "solo_whatsapp", "excel")
+        and not elite_signals
+        and complexity_level != "high"
+    ):
+        low, high = SERVICE_TIER_RANGES_MXN["LITE"]
+        return ServiceTierDecision(
+            tier="LITE",
+            min_price_mxn=low,
+            max_price_mxn=high,
+            reason="Negocio pequeno de bajo volumen: conviene empezar en LITE y escalar por modulos.",
+        )
+
     if growth_signals or employee_band == "6-20" or volume == "medio" or complexity_level == "medium":
         low, high = SERVICE_TIER_RANGES_MXN["GROWTH"]
         return ServiceTierDecision(
