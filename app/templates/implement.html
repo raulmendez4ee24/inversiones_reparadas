@@ -217,8 +217,9 @@
           });
           const data = await response.json();
           if (!response.ok || !data.ok || !data.preference_id || !data.public_key) {
-            const detail = data && data.error ? String(data.error) : "No se pudo crear el checkout.";
-            setStatus("No se pudo abrir el checkout: " + detail, true);
+            const code = data && data.error ? String(data.error) : "checkout_error";
+            const extra = data && data.detail ? ` (${String(data.detail).slice(0, 160)})` : "";
+            setStatus("No se pudo abrir el checkout: " + code + extra, true);
             return;
           }
 

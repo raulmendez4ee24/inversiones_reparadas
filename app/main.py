@@ -212,6 +212,17 @@ def _payment_url_for_express(
     )
 
 
+def _resolve_back_url(raw_value: str | None, app_public: str) -> str:
+    value = (raw_value or "").strip()
+    if not value:
+        return f"{app_public}/"
+    if value.startswith(("http://", "https://")):
+        return value
+    if value.startswith("/"):
+        return f"{app_public}{value}"
+    return f"{app_public}/{value.lstrip('/')}"
+
+
 def _mercadopago_config() -> dict[str, str]:
     return {
         "public_key": os.getenv("MP_PUBLIC_KEY", "").strip(),
@@ -483,10 +494,12 @@ async def mercadopago_preference(request: Request, payload: MPPreferenceRequest)
     app_public = os.getenv("APP_PUBLIC_URL", "").strip().rstrip("/")
     if not app_public:
         app_public = str(request.base_url).rstrip("/")
+    if not app_public.startswith(("http://", "https://")):
+        app_public = f"{request.url.scheme}://{app_public.lstrip('/')}"
 
-    success_url = os.getenv("MP_BACK_URL_SUCCESS", f"{app_public}/")
-    pending_url = os.getenv("MP_BACK_URL_PENDING", f"{app_public}/")
-    failure_url = os.getenv("MP_BACK_URL_FAILURE", f"{app_public}/")
+    success_url = _resolve_back_url(os.getenv("MP_BACK_URL_SUCCESS"), app_public)
+    pending_url = _resolve_back_url(os.getenv("MP_BACK_URL_PENDING"), app_public)
+    failure_url = _resolve_back_url(os.getenv("MP_BACK_URL_FAILURE"), app_public)
     notification_url = os.getenv("MP_WEBHOOK_URL", "").strip()
 
     body = {
