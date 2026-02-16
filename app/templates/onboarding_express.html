@@ -19,6 +19,7 @@
 
     <form class="onboarding-form" method="post" action="/implement">
       <input type="hidden" name="lead_id" value="{{ lead_id }}" />
+      <input type="hidden" name="express_offer" value="{{ express_offer }}" />
       {% for module_name in express_modules %}
       <input type="hidden" name="selected_modules" value="{{ module_name }}" />
       {% endfor %}

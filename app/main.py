@@ -240,6 +240,29 @@ EXPRESS_CATALOG = {
 }
 
 
+def _express_details_from_offer(offer_key: str) -> dict | None:
+    offer = (offer_key or "").strip().lower()
+    if not offer:
+        return None
+    details = EXPRESS_CATALOG.get(offer) or {}
+    if not details:
+        return None
+    return {
+        "offer_key": offer,
+        "label": details.get("label", "Solucion express"),
+        "price_mxn": int(details.get("price_mxn", 0) or 0),
+        "modules": list(details.get("modules", [])),
+    }
+
+
+def _express_offer_from_notes(notes: str) -> str | None:
+    text = (notes or "").strip().lower()
+    for offer in EXPRESS_CATALOG:
+        if f"express_offer:{offer}" in text:
+            return offer
+    return None
+
+
 def _express_offer_from_payload(payload: BusinessInput) -> str | None:
     budget = (payload.budget_range or "").strip().lower()
     if "express" not in budget:
@@ -261,17 +284,7 @@ def _express_offer_from_payload(payload: BusinessInput) -> str | None:
 
 def _express_details_from_payload(payload: BusinessInput) -> dict | None:
     offer_key = _express_offer_from_payload(payload)
-    if not offer_key:
-        return None
-    details = EXPRESS_CATALOG.get(offer_key) or {}
-    if not details:
-        return None
-    return {
-        "offer_key": offer_key,
-        "label": details.get("label", "Solucion express"),
-        "price_mxn": int(details.get("price_mxn", 0) or 0),
-        "modules": list(details.get("modules", [])),
-    }
+    return _express_details_from_offer(offer_key)
 
 
 def _build_quick_payload(
@@ -392,6 +405,7 @@ async def ai_health():
 
 @app.post("/quick-start")
 async def quick_start(
+    request: Request,
     quick_offer: str = Form("chatbot_whatsapp"),
     company_name: str = Form(...),
     contact_email: str = Form(...),
@@ -401,27 +415,32 @@ async def quick_start(
 ):
     if consent_contact not in ("1", "true", "on", "si", "yes"):
         return RedirectResponse(url="/#quick-order", status_code=303)
+    offer_key = (quick_offer or "").strip().lower()
+    if offer_key not in EXPRESS_CATALOG:
+        offer_key = "chatbot_whatsapp"
 
     payload = _build_quick_payload(
-        quick_offer=quick_offer,
+        quick_offer=offer_key,
         company_name=company_name,
         contact_email=contact_email,
         contact_whatsapp=contact_whatsapp,
     )
     output = run_analysis(payload)
     lead_id, _ = save_lead(DB_PATH, payload, output)
+    request.session[f"express_offer:{lead_id}"] = offer_key
 
     allow_direct_express = os.getenv("EXPRESS_DIRECT_PAYMENT", "0").strip().lower() in ("1", "true", "on", "si", "yes")
     if allow_direct_express and direct_to_payment in ("1", "true", "on", "si", "yes"):
         payment_url = _payment_url_for_express(
-            offer_key=quick_offer,
+            offer_key=offer_key,
             lead_id=lead_id,
             company_name=payload.company_name,
         )
         if payment_url:
             return RedirectResponse(url=payment_url, status_code=303)
 
-    return RedirectResponse(url=f"/onboarding/{lead_id}", status_code=303)
+    onboarding_url = f"/onboarding/{lead_id}?express_offer={urllib.parse.quote(offer_key)}"
+    return RedirectResponse(url=onboarding_url, status_code=303)
 
 
 @app.post("/api/payments/mercadopago/preference", response_class=JSONResponse)
@@ -452,7 +471,8 @@ async def mercadopago_preference(request: Request, payload: MPPreferenceRequest)
         return JSONResponse({"ok": False, "error": "invalid_payment_method"}, status_code=400)
 
     # Security: amount is always server-side, never client-provided.
-    express_details = _express_details_from_payload(lead_payload)
+    project_express_offer = _express_offer_from_notes(str(latest_project.get("notes") or ""))
+    express_details = _express_details_from_payload(lead_payload) or _express_details_from_offer(project_express_offer or "")
     server_amount = express_details["price_mxn"] if express_details and express_details.get("price_mxn") else lead_output.pricing.setup_fee_mxn
     amount = max(1.0, float(server_amount or 0))
     amount = round(amount, 2)
@@ -611,7 +631,7 @@ async def handoff_get():
 
 
 @app.get("/onboarding/{lead_id}", response_class=HTMLResponse)
-async def onboarding_view(request: Request, lead_id: int):
+async def onboarding_view(request: Request, lead_id: int, express_offer: str = ""):
     try:
         payload, output = fetch_lead(DB_PATH, lead_id)
     except ValueError:
@@ -619,7 +639,10 @@ async def onboarding_view(request: Request, lead_id: int):
 
     recommended = {module.name for module in output.recommended_modules}
     meta_connected = fetch_oauth_token(DB_PATH, lead_id, "meta") is not None
-    express_details = _express_details_from_payload(payload)
+    session_offer = str(request.session.get(f"express_offer:{lead_id}") or "").strip().lower()
+    requested_offer = (express_offer or "").strip().lower()
+    trusted_offer = requested_offer if requested_offer and requested_offer == session_offer else ""
+    express_details = _express_details_from_offer(trusted_offer) or _express_details_from_payload(payload)
     is_express = express_details is not None
 
     return templates.TemplateResponse(
@@ -966,7 +989,10 @@ async def implement(request: Request):
             },
         )
 
-    express_details = _express_details_from_payload(payload)
+    form_express_offer = (form.get("express_offer") or "").strip().lower()
+    session_offer = str(request.session.get(f"express_offer:{lead_id}") or "").strip().lower()
+    trusted_form_offer = form_express_offer if form_express_offer and form_express_offer == session_offer else ""
+    express_details = _express_details_from_offer(trusted_form_offer) or _express_details_from_payload(payload)
     is_express = express_details is not None
     selected_modules = form.getlist("selected_modules")
     if not selected_modules:
@@ -1084,6 +1110,9 @@ async def implement(request: Request):
         )
 
     notes = (form.get("notes") or "").strip()
+    if is_express and express_details and express_details.get("offer_key"):
+        marker = f"[express_offer:{express_details['offer_key']}]"
+        notes = f"{marker}\n{notes}".strip() if notes else marker
     status = "pending_consent" if not consent else "queued"
     try:
         project_id = save_project(
@@ -1107,6 +1136,8 @@ async def implement(request: Request):
                 "founder": _get_founder_info(),
             },
         )
+    if is_express:
+        request.session.pop(f"express_offer:{lead_id}", None)
     payment_url = _payment_url_for_method(
         payment_method=payment_method,
         lead_id=lead_id,
