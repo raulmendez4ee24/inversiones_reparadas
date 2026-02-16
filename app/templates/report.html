@@ -313,22 +313,21 @@
         <input type="hidden" name="team_roles" value="{{ payload.team_roles or '' }}" />
         <input type="hidden" name="manual_hours_per_week" value="{{ payload.manual_hours_per_week }}" />
         {% for module_key in payload.selected_modules %}
-          <input type="hidden" class="base-selected-module" name="selected_modules" value="{{ module_key }}" />
+          <input type="hidden" name="selected_modules" value="{{ module_key }}" />
         {% endfor %}
-        <div id="expressModuleOverrides"></div>
         <input type="hidden" name="processes" value="{{ payload.processes or '' }}" />
         <input type="hidden" name="bottlenecks" value="{{ payload.bottlenecks }}" />
         <input type="hidden" name="systems" value="{{ payload.systems or '' }}" />
         <input type="hidden" name="goals" value="{{ payload.goals or '' }}" />
         <input type="hidden" name="budget_range" value="{{ payload.budget_range or '' }}" />
-        <button type="submit">Pagar e iniciar conexion segura</button>
+        <button type="submit">Pagar e iniciar implementacion completa</button>
       </form>
     </section>
 
     <section class="card express-section" id="express-final">
       <h3>Soluciones express (micro y personal)</h3>
       <p class="meta">
-        Estas opciones estan al final para que primero veas el analisis completo. Si das clic en una, te llevamos a implementacion y pago.
+        Si eliges una opcion express, entras a un flujo corto: cuenta + pago.
       </p>
       <div class="report-grid express-grid">
         <article
@@ -337,11 +336,11 @@
           tabindex="0"
           data-offer="chatbot"
           data-title="Chatbot basico para WhatsApp"
-          data-price="$2,000 - $3,000 MXN"
+          data-price="$2,000 MXN pago unico"
           data-desc="Respuestas rapidas, FAQ basico y captura de datos de contacto para no perder mensajes."
         >
           <h3>Chatbot basico para WhatsApp</h3>
-          <p class="money-amount">$2,000 - $3,000 MXN</p>
+          <p class="money-amount">$2,000 MXN</p>
           <p class="meta">
             Respuestas rapidas, FAQ basico y captura de datos de contacto para no perder mensajes.
           </p>
@@ -352,11 +351,11 @@
           tabindex="0"
           data-offer="agenda"
           data-title="Agenda + chatbot por WhatsApp"
-          data-price="$2,500 - $4,500 MXN"
+          data-price="$3,500 MXN pago unico"
           data-desc="Confirmacion de citas, recordatorios automaticos y control simple de disponibilidad."
         >
           <h3>Agenda + chatbot por WhatsApp</h3>
-          <p class="money-amount">$2,500 - $4,500 MXN</p>
+          <p class="money-amount">$3,500 MXN</p>
           <p class="meta">
             Confirmacion de citas, recordatorios automaticos y control simple de disponibilidad.
           </p>
@@ -392,10 +391,19 @@
       <p class="meta" id="expressModalDesc"></p>
       <div class="modal-actions">
         <button type="button" class="ghost-btn js-go-activar">Ver implementacion</button>
-        <button type="button" class="button-link js-go-pay">Ir a implementacion y pago</button>
+        <button type="button" class="button-link js-go-pay">Continuar a login y pago</button>
       </div>
     </div>
   </div>
+
+  <form id="expressCheckoutForm" method="post" action="/quick-start" hidden>
+    <input type="hidden" name="quick_offer" id="expressOfferInput" value="chatbot_whatsapp" />
+    <input type="hidden" name="company_name" value="{{ payload.company_name }}" />
+    <input type="hidden" name="contact_email" value="{{ payload.contact_email or '' }}" />
+    <input type="hidden" name="contact_whatsapp" value="{{ payload.contact_whatsapp or '' }}" />
+    <input type="hidden" name="consent_contact" value="on" />
+    <input type="hidden" name="direct_to_payment" value="0" />
+  </form>
 
   <script>
     (function () {
@@ -407,32 +415,9 @@
       const goPayBtn = modal ? modal.querySelector(".js-go-pay") : null;
       const goActivarBtn = modal ? modal.querySelector(".js-go-activar") : null;
       const triggers = Array.from(document.querySelectorAll(".express-trigger"));
-      const activationForm = document.getElementById("activationForm");
-      const baseModules = activationForm
-        ? Array.from(activationForm.querySelectorAll(".base-selected-module"))
-        : [];
-      const overrides = document.getElementById("expressModuleOverrides");
+      const expressCheckoutForm = document.getElementById("expressCheckoutForm");
+      const expressOfferInput = document.getElementById("expressOfferInput");
       let currentOffer = "";
-
-      const offerModules = {
-        chatbot: ["whatsapp_ventas"],
-        agenda: ["whatsapp_ventas", "eficiencia_administrativa"],
-      };
-
-      function setOfferModules(offer) {
-        if (!activationForm || !overrides) return;
-        baseModules.forEach((input) => {
-          input.disabled = true;
-        });
-        overrides.innerHTML = "";
-        (offerModules[offer] || []).forEach((moduleKey) => {
-          const hidden = document.createElement("input");
-          hidden.type = "hidden";
-          hidden.name = "selected_modules";
-          hidden.value = moduleKey;
-          overrides.appendChild(hidden);
-        });
-      }
 
       function closeModal() {
         if (!modal) return;
@@ -479,9 +464,9 @@
       }
       if (goPayBtn) {
         goPayBtn.addEventListener("click", () => {
-          if (!activationForm) return;
-          setOfferModules(currentOffer);
-          activationForm.submit();
+          if (!expressCheckoutForm || !expressOfferInput) return;
+          expressOfferInput.value = currentOffer === "agenda" ? "agenda_chatbot" : "chatbot_whatsapp";
+          expressCheckoutForm.submit();
         });
       }
       document.addEventListener("keydown", (event) => {

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Onboarding Express | {{ payload.company_name }}</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="page report">
+    <header class="report-header">
+      <div>
+        <p class="pill">Express</p>
+        <h1>Activacion rapida</h1>
+        <p class="lead">Folio #{{ lead_id }} · {{ payload.company_name }}</p>
+      </div>
+      <a class="ghost" href="/">Nueva auditoria</a>
+    </header>
+
+    <form class="onboarding-form" method="post" action="/implement">
+      <input type="hidden" name="lead_id" value="{{ lead_id }}" />
+      {% for module_name in express_modules %}
+      <input type="hidden" name="selected_modules" value="{{ module_name }}" />
+      {% endfor %}
+
+      <div class="stepper" data-steps="2">
+        <div class="stepper-header">
+          <div>
+            <p class="pill mini">Flujo corto</p>
+            <h3>Cuenta + pago y listo</h3>
+          </div>
+          <div class="stepper-counter">
+            Paso <span class="step-current">1</span> de <span class="step-total">2</span>
+          </div>
+        </div>
+        <div class="stepper-track">
+          <div class="stepper-progress"></div>
+        </div>
+        <div class="stepper-labels">
+          <span class="step-label active">Cuenta</span>
+          <span class="step-label">Pago</span>
+        </div>
+      </div>
+
+      <section class="form-step active" data-step="1">
+        <section class="card">
+          <h3>Cuenta de acceso (obligatorio)</h3>
+          <p class="meta">Tu paquete ya esta definido: <strong>{{ express_label }}</strong>.</p>
+          <div class="kpi">
+            <span>Precio fijo express</span>
+            <strong>${{ express_price_mxn }} MXN</strong>
+          </div>
+          <div class="grid">
+            <label>
+              Correo de acceso
+              <input type="email" name="portal_email" placeholder="tu@empresa.com" value="{{ payload.contact_email or '' }}" required />
+            </label>
+            <label>
+              Contrasena
+              <input type="password" name="portal_password" placeholder="Minimo 6 caracteres" required />
+            </label>
+            <label>
+              Confirmar contrasena
+              <input type="password" name="portal_password_confirm" placeholder="Repite tu contrasena" required />
+            </label>
+          </div>
+          <label class="consent">
+            <input type="checkbox" name="marketing_opt_in" id="marketing-opt-in" />
+            <span>Acepto recibir comunicados, novedades y promociones relacionadas (opcional).</span>
+          </label>
+          <label>
+            Canal preferido (solo si activas comunicados)
+            <select name="marketing_channel" id="marketing-channel" disabled>
+              <option value="">Selecciona una opcion</option>
+              <option value="email">Email</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+          </label>
+        </section>
+      </section>
+
+      <section class="form-step" data-step="2">
+        <section class="card">
+          <h3>Pago express</h3>
+          <p class="meta">No necesitas seleccionar modulos: este paquete ya viene listo para activarse.</p>
+          <div class="report-grid">
+            <article class="card money solution">
+              <h3>{{ express_label }}</h3>
+              <p class="money-amount">${{ express_price_mxn }} MXN</p>
+              <p class="meta">Pago unico de implementacion inicial.</p>
+            </article>
+            <article class="card">
+              <h3>Incluye</h3>
+              <ul>
+                {% for module_name in express_modules %}
+                <li>{{ module_name }}</li>
+                {% endfor %}
+              </ul>
+            </article>
+          </div>
+          <label>
+            Metodo de pago preferido
+            <select name="payment_method" required>
+              <option value="">Selecciona una opcion</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
+          </label>
+          <label class="consent">
+            <input type="checkbox" name="consent" required />
+            <span>Acepto contrato y pago para iniciar esta implementacion express.</span>
+          </label>
+          <label class="consent">
+            <input type="checkbox" name="access_consent" required />
+            <span>Autorizo uso de accesos necesarios para activar este paquete.</span>
+          </label>
+        </section>
+
+        <section class="card">
+          <h3>Notas (opcional)</h3>
+          <textarea name="notes" rows="3" placeholder="Detalle breve para personalizar tu activacion"></textarea>
+        </section>
+      </section>
+
+      <div class="step-actions">
+        <button type="button" class="ghost-btn step-prev">Atras</button>
+        <button type="button" class="step-next">Siguiente</button>
+        <button type="submit" class="step-submit">Iniciar sesion y pagar</button>
+      </div>
+    </form>
+
+    <footer class="site-footer">
+      <span>© 2026 K'an Logic Systems</span>
+      <span class="footer-links">
+        <a href="/privacy">Privacidad</a>
+        <a href="/terms">Terminos</a>
+        <a href="/contact">Contacto</a>
+        <a href="/about">Nosotros</a>
+        <a href="/data-deletion">Eliminacion de datos</a>
+      </span>
+    </footer>
+  </main>
+
+  <script>
+    const form = document.querySelector(".onboarding-form");
+    if (form) {
+      const marketingOptIn = form.querySelector("#marketing-opt-in");
+      const marketingChannel = form.querySelector("#marketing-channel");
+      const syncMarketingChannel = () => {
+        if (!marketingChannel) return;
+        const enabled = !!(marketingOptIn && marketingOptIn.checked);
+        marketingChannel.disabled = !enabled;
+        if (!enabled) marketingChannel.value = "";
+      };
+      marketingOptIn?.addEventListener("change", syncMarketingChannel);
+      syncMarketingChannel();
+
+      const steps = Array.from(form.querySelectorAll(".form-step"));
+      const labels = Array.from(form.querySelectorAll(".step-label"));
+      const progress = form.querySelector(".stepper-progress");
+      const currentEl = form.querySelector(".step-current");
+      const totalEl = form.querySelector(".step-total");
+      const prevBtn = form.querySelector(".step-prev");
+      const nextBtn = form.querySelector(".step-next");
+      const submitBtn = form.querySelector(".step-submit");
+      const fields = Array.from(form.querySelectorAll("input, textarea, select"));
+
+      fields.forEach((field) => {
+        if (field.required) field.dataset.required = "1";
+      });
+
+      let index = 0;
+      const total = steps.length;
+      if (totalEl) totalEl.textContent = String(total);
+
+      const updateRequired = () => {
+        steps.forEach((step, idx) => {
+          const active = idx === index;
+          step.querySelectorAll("input, textarea, select").forEach((field) => {
+            if (field.dataset.required === "1") field.required = active;
+          });
+        });
+      };
+
+      const updateUI = () => {
+        steps.forEach((step, idx) => step.classList.toggle("active", idx === index));
+        labels.forEach((label, idx) => label.classList.toggle("active", idx === index));
+        if (currentEl) currentEl.textContent = String(index + 1);
+        if (progress) {
+          const pct = total <= 1 ? 100 : (index / (total - 1)) * 100;
+          progress.style.width = `${pct}%`;
+        }
+        if (prevBtn) {
+          prevBtn.disabled = index === 0;
+          prevBtn.style.opacity = index === 0 ? "0.5" : "1";
+        }
+        if (nextBtn) nextBtn.style.display = index === total - 1 ? "none" : "inline-flex";
+        if (submitBtn) submitBtn.style.display = index === total - 1 ? "inline-flex" : "none";
+        updateRequired();
+      };
+
+      const validateStep = () => {
+        const currentFields = Array.from(steps[index].querySelectorAll("input, textarea, select"));
+        for (const field of currentFields) {
+          if (!field.checkValidity()) {
+            field.reportValidity();
+            return false;
+          }
+        }
+
+        const pwd = form.querySelector("input[name='portal_password']");
+        const confirm = form.querySelector("input[name='portal_password_confirm']");
+        if (pwd && confirm && pwd.value && confirm.value && pwd.value !== confirm.value) {
+          confirm.setCustomValidity("Las contrasenas no coinciden.");
+          confirm.reportValidity();
+          confirm.setCustomValidity("");
+          return false;
+        }
+        return true;
+      };
+
+      prevBtn?.addEventListener("click", () => {
+        index = Math.max(0, index - 1);
+        updateUI();
+      });
+
+      nextBtn?.addEventListener("click", () => {
+        if (!validateStep()) return;
+        index = Math.min(total - 1, index + 1);
+        updateUI();
+      });
+
+      form.addEventListener("submit", (event) => {
+        if (!validateStep()) {
+          event.preventDefault();
+          return;
+        }
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Preparando pago...";
+        }
+      });
+
+      updateUI();
+    }
+  </script>
+</body>
+</html>

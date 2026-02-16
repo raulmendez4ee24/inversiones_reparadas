@@ -189,6 +189,91 @@ def _payment_url_for_method(
     )
 
 
+def _payment_url_for_express(
+    offer_key: str,
+    lead_id: int,
+    company_name: str,
+) -> str | None:
+    offer = (offer_key or "").strip().lower()
+    links = {
+        "chatbot_whatsapp": os.getenv("PAYMENT_URL_EXPRESS_CHATBOT", "").strip(),
+        "agenda_chatbot": os.getenv("PAYMENT_URL_EXPRESS_AGENDA", "").strip(),
+    }
+    default_link = os.getenv("PAYMENT_URL_EXPRESS_DEFAULT", "").strip()
+    base = links.get(offer) or default_link
+    if not base:
+        return None
+
+    company_encoded = urllib.parse.quote((company_name or "").strip())
+    return (
+        base.replace("{lead_id}", str(lead_id))
+        .replace("{company_name}", company_encoded)
+        .replace("{offer}", offer or "express")
+    )
+
+
+def _mercadopago_config() -> dict[str, str]:
+    return {
+        "public_key": os.getenv("MP_PUBLIC_KEY", "").strip(),
+        "access_token": os.getenv("MP_ACCESS_TOKEN", "").strip(),
+        "api_base": os.getenv("MP_API_BASE_URL", "https://api.mercadopago.com").strip().rstrip("/"),
+    }
+
+
+EXPRESS_CATALOG = {
+    "chatbot_whatsapp": {
+        "label": "Chatbot basico para WhatsApp",
+        "price_mxn": 2000,
+        "modules": [
+            "Bot de ventas para WhatsApp",
+            "Chatbot de atencion al cliente",
+        ],
+    },
+    "agenda_chatbot": {
+        "label": "Agenda + chatbot por WhatsApp",
+        "price_mxn": 3500,
+        "modules": [
+            "Bot de ventas para WhatsApp",
+            "Eficiencia administrativa (archivos y carpetas)",
+        ],
+    },
+}
+
+
+def _express_offer_from_payload(payload: BusinessInput) -> str | None:
+    budget = (payload.budget_range or "").strip().lower()
+    if "express" not in budget:
+        return None
+
+    text = " ".join(
+        [
+            payload.business_focus or "",
+            payload.goals or "",
+            payload.processes or "",
+            budget,
+        ]
+    ).lower()
+
+    if any(token in text for token in ["agenda", "cita", "recordatorio", "3,500"]):
+        return "agenda_chatbot"
+    return "chatbot_whatsapp"
+
+
+def _express_details_from_payload(payload: BusinessInput) -> dict | None:
+    offer_key = _express_offer_from_payload(payload)
+    if not offer_key:
+        return None
+    details = EXPRESS_CATALOG.get(offer_key) or {}
+    if not details:
+        return None
+    return {
+        "offer_key": offer_key,
+        "label": details.get("label", "Solucion express"),
+        "price_mxn": int(details.get("price_mxn", 0) or 0),
+        "modules": list(details.get("modules", [])),
+    }
+
+
 def _build_quick_payload(
     quick_offer: str,
     company_name: str,
@@ -258,6 +343,14 @@ class AIReplyRequest(BaseModel):
     context: dict | None = None
 
 
+class MPPreferenceRequest(BaseModel):
+    lead_id: int
+    project_id: int
+    checkout_token: str
+    payer_email: str | None = None
+    payment_method: str | None = None
+
+
 @app.post("/api/capture", response_class=JSONResponse)
 async def capture_lead(
     request: Request,
@@ -304,6 +397,7 @@ async def quick_start(
     contact_email: str = Form(...),
     contact_whatsapp: str = Form(""),
     consent_contact: str = Form(""),
+    direct_to_payment: str = Form("0"),
 ):
     if consent_contact not in ("1", "true", "on", "si", "yes"):
         return RedirectResponse(url="/#quick-order", status_code=303)
@@ -317,7 +411,131 @@ async def quick_start(
     output = run_analysis(payload)
     lead_id, _ = save_lead(DB_PATH, payload, output)
 
+    allow_direct_express = os.getenv("EXPRESS_DIRECT_PAYMENT", "0").strip().lower() in ("1", "true", "on", "si", "yes")
+    if allow_direct_express and direct_to_payment in ("1", "true", "on", "si", "yes"):
+        payment_url = _payment_url_for_express(
+            offer_key=quick_offer,
+            lead_id=lead_id,
+            company_name=payload.company_name,
+        )
+        if payment_url:
+            return RedirectResponse(url=payment_url, status_code=303)
+
     return RedirectResponse(url=f"/onboarding/{lead_id}", status_code=303)
+
+
+@app.post("/api/payments/mercadopago/preference", response_class=JSONResponse)
+async def mercadopago_preference(request: Request, payload: MPPreferenceRequest):
+    cfg = _mercadopago_config()
+    if not cfg["public_key"] or not cfg["access_token"]:
+        return JSONResponse(
+            {"ok": False, "error": "mercadopago_not_configured"},
+            status_code=503,
+        )
+
+    try:
+        lead_payload, lead_output = fetch_lead(DB_PATH, int(payload.lead_id))
+    except ValueError:
+        return JSONResponse({"ok": False, "error": "lead_not_found"}, status_code=404)
+
+    latest_project = fetch_latest_project(DB_PATH, int(payload.lead_id))
+    if not latest_project or int(latest_project.get("id", 0)) != int(payload.project_id):
+        return JSONResponse({"ok": False, "error": "project_not_found"}, status_code=404)
+
+    token_key = f"mp_checkout_token:{payload.lead_id}:{payload.project_id}"
+    expected_token = str(request.session.get(token_key) or "")
+    if not expected_token or payload.checkout_token != expected_token:
+        return JSONResponse({"ok": False, "error": "invalid_checkout_token"}, status_code=403)
+
+    method = (payload.payment_method or "").strip().lower()
+    if method and method != "tarjeta":
+        return JSONResponse({"ok": False, "error": "invalid_payment_method"}, status_code=400)
+
+    # Security: amount is always server-side, never client-provided.
+    express_details = _express_details_from_payload(lead_payload)
+    server_amount = express_details["price_mxn"] if express_details and express_details.get("price_mxn") else lead_output.pricing.setup_fee_mxn
+    amount = max(1.0, float(server_amount or 0))
+    amount = round(amount, 2)
+    company_name = lead_payload.company_name
+    payer_email = (payload.payer_email or lead_payload.contact_email or "").strip() or None
+    title = os.getenv("MP_ITEM_TITLE", "Implementacion K'an Logic Systems").strip()
+    statement_descriptor = os.getenv("MP_STATEMENT_DESCRIPTOR", "KANLOGIC").strip()
+    app_public = os.getenv("APP_PUBLIC_URL", "").strip().rstrip("/")
+    if not app_public:
+        app_public = str(request.base_url).rstrip("/")
+
+    success_url = os.getenv("MP_BACK_URL_SUCCESS", f"{app_public}/")
+    pending_url = os.getenv("MP_BACK_URL_PENDING", f"{app_public}/")
+    failure_url = os.getenv("MP_BACK_URL_FAILURE", f"{app_public}/")
+    notification_url = os.getenv("MP_WEBHOOK_URL", "").strip()
+
+    body = {
+        "items": [
+            {
+                "title": title,
+                "quantity": 1,
+                "currency_id": "MXN",
+                "unit_price": amount,
+            }
+        ],
+        "external_reference": f"lead-{payload.lead_id}-project-{payload.project_id}",
+        "statement_descriptor": statement_descriptor[:13] if statement_descriptor else "KANLOGIC",
+        "metadata": {
+            "lead_id": payload.lead_id,
+            "project_id": payload.project_id,
+            "company_name": company_name,
+            "payment_method": "tarjeta",
+        },
+        "back_urls": {
+            "success": success_url,
+            "pending": pending_url,
+            "failure": failure_url,
+        },
+        "auto_return": "approved",
+    }
+    if payer_email:
+        body["payer"] = {"email": payer_email}
+    if notification_url:
+        body["notification_url"] = notification_url
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(
+                f"{cfg['api_base']}/checkout/preferences",
+                headers={
+                    "Authorization": f"Bearer {cfg['access_token']}",
+                    "Content-Type": "application/json",
+                },
+                json=body,
+            )
+    except httpx.HTTPError:
+        return JSONResponse({"ok": False, "error": "mercadopago_unreachable"}, status_code=502)
+
+    if response.status_code >= 300:
+        detail = ""
+        try:
+            detail = str(response.json())
+        except ValueError:
+            detail = response.text
+        return JSONResponse(
+            {"ok": False, "error": "mercadopago_preference_failed", "detail": detail[:400]},
+            status_code=502,
+        )
+
+    data = response.json()
+    preference_id = data.get("id")
+    if not preference_id:
+        return JSONResponse(
+            {"ok": False, "error": "mercadopago_invalid_preference"},
+            status_code=502,
+        )
+
+    return {
+        "ok": True,
+        "preference_id": preference_id,
+        "public_key": cfg["public_key"],
+        "init_point": data.get("init_point"),
+    }
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -401,9 +619,11 @@ async def onboarding_view(request: Request, lead_id: int):
 
     recommended = {module.name for module in output.recommended_modules}
     meta_connected = fetch_oauth_token(DB_PATH, lead_id, "meta") is not None
+    express_details = _express_details_from_payload(payload)
+    is_express = express_details is not None
 
     return templates.TemplateResponse(
-        "onboarding.html",
+        "onboarding_express.html" if is_express else "onboarding.html",
         {
             "request": request,
             "payload": payload,
@@ -415,6 +635,11 @@ async def onboarding_view(request: Request, lead_id: int):
             "access_items": access_items(),
             "meta_connected": meta_connected,
             "founder": _get_founder_info(),
+            "is_express": is_express,
+            "express_offer": express_details.get("offer_key") if express_details else "",
+            "express_label": express_details.get("label") if express_details else "",
+            "express_price_mxn": express_details.get("price_mxn") if express_details else 0,
+            "express_modules": express_details.get("modules") if express_details else [],
         },
     )
 
@@ -741,9 +966,14 @@ async def implement(request: Request):
             },
         )
 
+    express_details = _express_details_from_payload(payload)
+    is_express = express_details is not None
     selected_modules = form.getlist("selected_modules")
     if not selected_modules:
-        selected_modules = [module.name for module in output.recommended_modules]
+        if is_express and express_details:
+            selected_modules = express_details.get("modules", [])
+        else:
+            selected_modules = [module.name for module in output.recommended_modules]
 
     payment_method = (form.get("payment_method") or "").strip()
     wants_whatsapp = form.get("wants_whatsapp") == "on"
@@ -883,6 +1113,15 @@ async def implement(request: Request):
         project_id=project_id,
         company_name=payload.company_name,
     )
+    pay_amount_mxn = int(output.pricing.setup_fee_mxn or 0)
+    if is_express and express_details and express_details.get("price_mxn"):
+        pay_amount_mxn = int(express_details["price_mxn"])
+    mp_cfg = _mercadopago_config()
+    mp_checkout_enabled = bool(mp_cfg["public_key"] and mp_cfg["access_token"])
+    mp_checkout_token = ""
+    if consent and payment_method == "tarjeta" and mp_checkout_enabled:
+        mp_checkout_token = secrets.token_urlsafe(24)
+        request.session[f"mp_checkout_token:{lead_id}:{project_id}"] = mp_checkout_token
 
     webhook_url = os.getenv("N8N_WEBHOOK_URL", "").strip()
     webhook_status = "no_configured"
@@ -958,8 +1197,15 @@ async def implement(request: Request):
             "automation_options": automation_options,
             "selected_modules": selected_modules,
             "payment_url": payment_url,
+            "pay_amount_mxn": pay_amount_mxn,
+            "mp_checkout_enabled": mp_checkout_enabled,
+            "mp_public_key": mp_cfg["public_key"],
+            "mp_checkout_token": mp_checkout_token,
             "security_warning": security_warning,
             "founder": _get_founder_info(),
+            "is_express": is_express,
+            "express_offer": express_details.get("offer_key") if express_details else "",
+            "express_label": express_details.get("label") if express_details else "",
         },
     )
 

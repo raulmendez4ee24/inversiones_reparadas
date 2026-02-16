@@ -53,30 +53,48 @@
         {% if security_warning %}
           <p class="meta" style="color:#9b3b2b;">{{ security_warning }}</p>
         {% endif %}
+        {% if is_express %}
+        <p class="meta">
+          Paso final: completa tu pago express y activamos tu implementacion.
+        </p>
+        {% else %}
         <p class="meta">
           Siguiente paso: agenda tu sesion de Activacion (15 min). En esa llamada conectamos tus cuentas de forma segura
           y confirmamos entregables.
         </p>
-        {% if consent and payment_url %}
-          <div class="founder-actions">
-            <a class="button-link js-pay-now" href="{{ payment_url }}" target="_blank" rel="noopener">Ir a pagar ahora</a>
-          </div>
-          <p class="meta">Te abrimos el checkout en una nueva pestana para completar el pago.</p>
-        {% elif consent %}
-          <p class="meta" style="color:#9b3b2b;">
-            Falta configurar el link de pago. Define `PAYMENT_URL_CARD` y/o `PAYMENT_URL_TRANSFER`.
-          </p>
         {% endif %}
-        <div class="founder-actions">
-          {% if founder and (founder.calendar_url or founder.whatsapp) %}
-            <a class="button-link" href="/agenda?lead_id={{ lead_id }}&company={{ payload.company_name | urlencode }}&source=implement" target="_blank" rel="noopener noreferrer">Agendar sesion (nueva pestana)</a>
+        {% if consent %}
+          {% if payment_method == "tarjeta" and mp_checkout_enabled %}
+            <div class="founder-actions">
+              <button type="button" class="button-link js-mp-open">Pagar con tarjeta</button>
+              {% if payment_url %}
+                <a class="ghost js-pay-now" href="{{ payment_url }}" rel="noopener">Usar link directo</a>
+              {% endif %}
+            </div>
+            <p class="meta">Pago seguro con Mercado Pago dentro de esta pantalla.</p>
+          {% elif payment_url %}
+            <div class="founder-actions">
+              <a class="button-link js-pay-now" href="{{ payment_url }}" rel="noopener">Ir a pagar ahora</a>
+            </div>
+            <p class="meta">Completa el pago para continuar con la implementacion.</p>
+          {% else %}
+            <p class="meta" style="color:#9b3b2b;">
+              Falta configurar el link de pago. Define `PAYMENT_URL_CARD` y/o `PAYMENT_URL_TRANSFER`.
+            </p>
           {% endif %}
-          {% if founder and founder.whatsapp %}
-            {% set wa_text = ("Hola, quiero agendar mi sesion de Activacion. Proyecto " ~ project_id ~ " (Folio " ~ lead_id ~ ").") %}
-            <a class="mini-btn" href="https://wa.me/{{ founder.whatsapp | replace('+','') | replace(' ','') }}?text={{ wa_text | replace(' ', '%20') | replace('(', '%28') | replace(')', '%29') }}" target="_blank" rel="noopener">Agendar por WhatsApp</a>
-          {% endif %}
-        </div>
-        <p class="meta">Se abre en otra pestana para que no pierdas esta pantalla.</p>
+        {% endif %}
+        {% if not is_express %}
+          <div class="founder-actions">
+            {% if founder and (founder.calendar_url or founder.whatsapp) %}
+              <a class="button-link" href="/agenda?lead_id={{ lead_id }}&company={{ payload.company_name | urlencode }}&source=implement" target="_blank" rel="noopener noreferrer">Agendar sesion</a>
+            {% endif %}
+            {% if founder and founder.whatsapp %}
+              {% set wa_text = ("Hola, quiero agendar mi sesion de Activacion. Proyecto " ~ project_id ~ " (Folio " ~ lead_id ~ ").") %}
+              <a class="mini-btn" href="https://wa.me/{{ founder.whatsapp | replace('+','') | replace(' ','') }}?text={{ wa_text | replace(' ', '%20') | replace('(', '%28') | replace(')', '%29') }}" target="_blank" rel="noopener">Agendar por WhatsApp</a>
+            {% endif %}
+          </div>
+          <p class="meta">Agenda tu sesion de activacion para cerrar este paso.</p>
+        {% endif %}
       </section>
 
       <section class="report-grid">
@@ -120,7 +138,7 @@
           </div>
           <div class="kpi">
             <span>Inversion unica (MXN)</span>
-            <strong>${{ output.pricing.setup_fee_mxn }} MXN</strong>
+            <strong>${{ pay_amount_mxn }} MXN</strong>
           </div>
         </article>
       </section>
@@ -137,11 +155,105 @@
       </span>
     </footer>
   </main>
-  {% if consent and payment_url %}
+  {% if consent and payment_method == "tarjeta" and mp_checkout_enabled %}
+  <div class="modal-backdrop" id="mpCheckoutModal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="mpCheckoutTitle">
+      <button type="button" class="modal-close js-mp-close" aria-label="Cerrar">x</button>
+      <p class="pill mini">Pago seguro</p>
+      <h3 id="mpCheckoutTitle">Checkout Mercado Pago</h3>
+      <p class="meta">
+        Total: <strong>${{ pay_amount_mxn }} MXN</strong>.
+      </p>
+      <div id="mpCheckoutContainer"></div>
+      <p class="meta" id="mpCheckoutStatus"></p>
+    </div>
+  </div>
+  <script src="https://sdk.mercadopago.com/js/v2"></script>
   <script>
-    window.setTimeout(() => {
-      window.location.href = "{{ payment_url }}";
-    }, 700);
+    (function () {
+      const openBtn = document.querySelector(".js-mp-open");
+      const modal = document.getElementById("mpCheckoutModal");
+      const closeBtn = document.querySelector(".js-mp-close");
+      const container = document.getElementById("mpCheckoutContainer");
+      const statusEl = document.getElementById("mpCheckoutStatus");
+      const leadId = {{ lead_id }};
+      const projectId = {{ project_id }};
+      const payerEmail = {{ (payload.contact_email or "") | tojson }};
+      const checkoutToken = {{ (mp_checkout_token or "") | tojson }};
+      let mpInstance = null;
+
+      function setStatus(text, isError) {
+        if (!statusEl) return;
+        statusEl.textContent = text || "";
+        statusEl.style.color = isError ? "#9b3b2b" : "#5a6d92";
+      }
+
+      function closeModal() {
+        if (!modal) return;
+        modal.hidden = true;
+      }
+
+      async function openCheckout() {
+        if (!modal || !container) return;
+        modal.hidden = false;
+        setStatus("Preparando checkout seguro...", false);
+        container.innerHTML = "";
+
+        try {
+          if (!checkoutToken) {
+            setStatus("No se pudo iniciar el checkout seguro. Recarga la pagina.", true);
+            return;
+          }
+          const response = await fetch("/api/payments/mercadopago/preference", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lead_id: leadId,
+              project_id: projectId,
+              checkout_token: checkoutToken,
+              payer_email: payerEmail || null,
+              payment_method: "tarjeta",
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok || !data.ok || !data.preference_id || !data.public_key) {
+            const detail = data && data.error ? String(data.error) : "No se pudo crear el checkout.";
+            setStatus("No se pudo abrir el checkout: " + detail, true);
+            return;
+          }
+
+          mpInstance = new MercadoPago(data.public_key, { locale: "es-MX" });
+          mpInstance.checkout({
+            preference: { id: data.preference_id },
+            render: {
+              container: "#mpCheckoutContainer",
+              label: "Pagar ahora",
+            },
+            autoOpen: true,
+          });
+          setStatus("Checkout listo. Completa el pago para continuar.", false);
+        } catch (error) {
+          setStatus("Error al conectar con Mercado Pago.", true);
+        }
+      }
+
+      openBtn?.addEventListener("click", openCheckout);
+      closeBtn?.addEventListener("click", closeModal);
+      modal?.addEventListener("click", (event) => {
+        if (event.target === modal) closeModal();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeModal();
+      });
+    })();
+  </script>
+  {% elif consent and payment_url %}
+  <script>
+    // Fallback para metodos sin modal (ej. transferencia).
+    const payLink = document.querySelector(".js-pay-now");
+    if (payLink && !payLink.getAttribute("target")) {
+      payLink.setAttribute("target", "_self");
+    }
   </script>
   {% endif %}
 </body>
