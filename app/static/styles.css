@@ -416,6 +416,65 @@ h4 {
   flex-wrap: wrap;
 }
 
+.market-compare {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, #ffffff 0%, #f3f8ff 100%);
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.market-compare h3 {
+  font-size: 1.06rem;
+}
+
+.compare-table {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.compare-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 1.2fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.compare-row span {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.compare-row.compare-head {
+  border-top: 0;
+  background: #eef4ff;
+}
+
+.compare-row.compare-head span {
+  font-size: 0.74rem;
+  color: var(--primary-dark);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+.compare-row.emphasize {
+  background: #f6fbff;
+}
+
+.compare-row.emphasize span:first-child,
+.compare-row.emphasize span:nth-child(2) {
+  color: #123579;
+  font-weight: 700;
+}
+
 .route-pick {
   margin-bottom: 18px;
   display: grid;
@@ -1654,6 +1713,19 @@ button:hover,
 
   .quick-order-actions > * {
     width: 100%;
+  }
+
+  .compare-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .compare-row.compare-head {
+    display: none;
+  }
+
+  .compare-row span {
+    font-size: 0.84rem;
   }
 
   .site-footer {
