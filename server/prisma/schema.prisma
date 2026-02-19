@@ -132,6 +132,7 @@ model User {
   taskRuns     TaskRun[]    @relation("TaskRunRequestedBy")
   approvalsRequested Approval[] @relation("ApprovalRequestedBy")
   approvalsDecided   Approval[] @relation("ApprovalDecidedBy")
+  events      Event[]
   auditLogs    AuditLog[]
   passwordResets PasswordResetToken[]
   otpCodes     OtpCode[]
