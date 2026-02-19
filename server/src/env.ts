@@ -2,7 +2,10 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().min(1),
+  DATABASE_URL: z
+    .string()
+    .min(1)
+    .default('postgresql://postgres:postgres@localhost:5432/postgres?schema=public'),
   APP_ORIGIN: z.string().url().default('http://localhost:5173'),
   PORT: z.coerce.number().int().positive().default(3001),
   COOKIE_SECURE: z.coerce.boolean().default(false),
@@ -10,4 +13,3 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
-
