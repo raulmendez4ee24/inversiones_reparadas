@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: kanlogic
+      POSTGRES_PASSWORD: kanlogic
+      POSTGRES_DB: kanlogic
+    ports:
+      - "5432:5432"
+    volumes:
+      - kanlogic_pg:/var/lib/postgresql/data
+
+volumes:
+  kanlogic_pg:
+

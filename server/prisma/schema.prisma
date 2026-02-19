@@ -1,0 +1,366 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  starter
+  growth
+  commerce
+  enterprise
+}
+
+enum OrgStatus {
+  active
+  suspended
+  trial
+}
+
+enum SystemRole {
+  NONE
+  SUPER_ADMIN
+}
+
+enum OrgRole {
+  ORG_ADMIN
+  ORG_USER
+}
+
+enum WorkflowStatus {
+  active
+  paused
+  error
+  warning
+}
+
+enum HealthStatus {
+  healthy
+  warning
+  error
+}
+
+enum IntegrationStatus {
+  connected
+  disconnected
+  error
+  syncing
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
+enum ApprovalType {
+  task_run
+  integration_connect
+  automation_edit
+}
+
+enum TaskRunStatus {
+  awaiting_approval
+  queued
+  running
+  completed
+  failed
+  cancelled
+}
+
+enum TaskStepStatus {
+  pending
+  running
+  completed
+  failed
+}
+
+enum EventType {
+  automation
+  task
+  integration
+  alert
+  approval
+  security
+}
+
+enum EventStatus {
+  success
+  warning
+  error
+  pending
+}
+
+model Organization {
+  id        String    @id @default(cuid())
+  name      String
+  plan      Plan      @default(starter)
+  status    OrgStatus @default(trial)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  memberships Membership[]
+  workflows   Workflow[]
+  tasks       Task[]
+  taskRuns    TaskRun[]
+  steps       TaskStep[]
+  events      Event[]
+  approvals   Approval[]
+  auditLogs   AuditLog[]
+  integrations Integration[]
+  sessions    Session[]
+
+  @@index([createdAt])
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String?
+  systemRole   SystemRole @default(NONE)
+  isActive     Boolean    @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  memberships  Membership[]
+  sessions     Session[]
+  taskRuns     TaskRun[]    @relation("TaskRunRequestedBy")
+  approvalsRequested Approval[] @relation("ApprovalRequestedBy")
+  approvalsDecided   Approval[] @relation("ApprovalDecidedBy")
+  auditLogs    AuditLog[]
+  passwordResets PasswordResetToken[]
+  otpCodes     OtpCode[]
+
+  @@index([createdAt])
+}
+
+model Membership {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           OrgRole
+  createdAt      DateTime @default(now())
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  tokenHash      String   @unique
+  userId         String
+  organizationId String
+  impersonatedUserId String?
+  impersonatedOrgId  String?
+  createdAt      DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  expiresAt      DateTime
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([expiresAt])
+}
+
+model Workflow {
+  id             String         @id @default(cuid())
+  organizationId String
+  name           String
+  description    String
+  status         WorkflowStatus @default(active)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  runCount       Int            @default(0)
+  successRate    Float          @default(100)
+  healthStatus   HealthStatus   @default(healthy)
+  config         Json
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model Task {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String
+  schedule       String
+  isPaused       Boolean  @default(false)
+  requiresApproval Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  runs         TaskRun[]
+
+  @@index([organizationId])
+}
+
+model TaskRun {
+  id             String       @id @default(cuid())
+  organizationId String
+  taskId         String
+  requestedByUserId String?
+  status         TaskRunStatus @default(queued)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  progress       Int          @default(0)
+  errorMessage   String?
+  evidence       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  task         Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  requestedBy  User?        @relation("TaskRunRequestedBy", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  steps        TaskStep[]
+  approvals    Approval[]
+
+  @@index([organizationId])
+  @@index([taskId])
+  @@index([createdAt])
+}
+
+model TaskStep {
+  id             String        @id @default(cuid())
+  organizationId String
+  taskRunId      String
+  name           String
+  status         TaskStepStatus @default(pending)
+  progress       Int           @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  logs           Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  run          TaskRun      @relation(fields: [taskRunId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([taskRunId])
+}
+
+model Event {
+  id             String      @id @default(cuid())
+  organizationId String
+  actorUserId    String?
+  type           EventType
+  title          String
+  description    String
+  status         EventStatus
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User?        @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([type])
+  @@index([status])
+}
+
+model Approval {
+  id             String        @id @default(cuid())
+  organizationId String
+  taskRunId      String?
+  type           ApprovalType
+  title          String
+  description    String
+  status         ApprovalStatus @default(pending)
+  requestedByUserId String?
+  decidedByUserId   String?
+  requestedAt    DateTime      @default(now())
+  decidedAt      DateTime?
+  metadata       Json?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  taskRun      TaskRun?     @relation(fields: [taskRunId], references: [id], onDelete: SetNull)
+  requestedBy  User?        @relation("ApprovalRequestedBy", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  decidedBy    User?        @relation("ApprovalDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([requestedAt])
+}
+
+model Integration {
+  id             String           @id @default(cuid())
+  organizationId String
+  name           String
+  provider       String
+  status         IntegrationStatus @default(disconnected)
+  lastSyncAt     DateTime?
+  healthStatus   HealthStatus     @default(healthy)
+  config         Json
+  credentials    Json
+  estimatedCost  Int?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([provider])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorUserId    String?
+  action         String
+  resource       String
+  resourceId     String?
+  ip             String
+  userAgent      String
+  severity       String
+  details        Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User?        @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([action])
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String
+  codeHash  String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  consumedAt DateTime?
+  attempts  Int      @default(0)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email, expiresAt])
+}

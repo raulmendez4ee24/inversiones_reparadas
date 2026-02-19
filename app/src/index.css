@@ -1,0 +1,328 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Kan Logic Hyper-Tech Colors */
+    --void-black: #000000;
+    --deep-void: #050508;
+    --cyber-cyan: #00F0FF;
+    --neon-purple: #B829F7;
+    --electric-violet: #7C3AED;
+    --matrix-green: #00FF88;
+    --alert-amber: #FFB800;
+    --error-crimson: #FF3366;
+    --steel-gray: #1A1A2E;
+    --frost-white: #E0E0E0;
+    --ghost-white: #A0A0B0;
+    --terminal-gray: #4A4A5A;
+    
+    /* shadcn overrides for dark theme */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 88%;
+    --card: 240 33% 2%;
+    --card-foreground: 0 0% 88%;
+    --popover: 240 33% 2%;
+    --popover-foreground: 0 0% 88%;
+    --primary: 183 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 280 92% 56%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 20% 10%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 150 100% 50%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 343 100% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 10% 20%;
+    --input: 240 10% 20%;
+    --ring: 183 100% 50%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-void-black text-frost-white font-body antialiased;
+    overflow-x: hidden;
+  }
+  
+  ::selection {
+    background: rgba(0, 240, 255, 0.3);
+    color: #fff;
+  }
+}
+
+@layer components {
+  /* Text Gradient */
+  .text-gradient {
+    background: linear-gradient(90deg, #00F0FF 0%, #B829F7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Terminal Text */
+  .text-terminal {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyber-cyan);
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+  }
+  
+  /* Cyber Button Primary - Laser Scan Effect */
+  .btn-cyber {
+    @apply relative px-8 py-4 bg-transparent border border-cyber-cyan text-cyber-cyan font-mono text-sm font-medium tracking-widest uppercase overflow-hidden cursor-pointer transition-all duration-300;
+  }
+  
+  .btn-cyber::before {
+    content: '';
+    @apply absolute top-0 left-0 w-full h-full;
+    background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.4), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s ease;
+  }
+  
+  .btn-cyber:hover::before {
+    transform: translateX(100%);
+  }
+  
+  .btn-cyber:hover {
+    @apply bg-cyber-cyan/10;
+    box-shadow: 
+      0 0 20px rgba(0, 240, 255, 0.5),
+      0 0 40px rgba(0, 240, 255, 0.3),
+      inset 0 0 20px rgba(0, 240, 255, 0.1);
+  }
+  
+  /* Cyber Button Secondary */
+  .btn-cyber-secondary {
+    @apply relative px-8 py-4 bg-transparent border border-terminal-gray text-ghost-white font-mono text-sm font-medium tracking-widest uppercase transition-all duration-300;
+  }
+  
+  .btn-cyber-secondary:hover {
+    @apply border-neon-purple text-neon-purple;
+    box-shadow: 0 0 20px rgba(184, 41, 247, 0.3);
+  }
+  
+  /* Cyber Card - Decompression Effect */
+  .card-cyber {
+    @apply relative bg-deep-void border border-terminal-gray rounded-lg p-6 overflow-hidden transition-all duration-500;
+  }
+  
+  .card-cyber::before {
+    content: '';
+    @apply absolute inset-0 rounded-lg;
+    padding: 1px;
+    background: linear-gradient(135deg, #00F0FF 0%, #B829F7 100%);
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  
+  .card-cyber::after {
+    content: '';
+    @apply absolute -inset-px rounded-lg -z-10;
+    background: radial-gradient(circle, rgba(0,240,255,0.3) 0%, transparent 70%);
+    opacity: 0;
+    filter: blur(20px);
+    transition: opacity 0.4s ease;
+  }
+  
+  .card-cyber:hover {
+    @apply -translate-y-1 scale-[1.02] border-transparent;
+  }
+  
+  .card-cyber:hover::before,
+  .card-cyber:hover::after {
+    opacity: 1;
+  }
+  
+  /* Scan Lines Effect */
+  .scan-lines {
+    @apply absolute inset-0 pointer-events-none opacity-0 transition-opacity duration-500;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 240, 255, 0.03) 2px,
+      rgba(0, 240, 255, 0.03) 4px
+    );
+  }
+  
+  .card-cyber:hover .scan-lines {
+    @apply opacity-100;
+  }
+  
+  /* Bento Grid Item */
+  .bento-item {
+    @apply relative bg-steel-gray border border-terminal-gray/50 rounded-xl overflow-hidden transition-all duration-300;
+  }
+  
+  .bento-item::before {
+    content: '';
+    @apply absolute inset-0 rounded-xl;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 240, 255, 0.5) 0%,
+      transparent 30%,
+      transparent 70%,
+      rgba(184, 41, 247, 0.5) 100%
+    );
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+  
+  .bento-item:hover {
+    @apply border-cyber-cyan;
+    box-shadow: 
+      0 0 30px rgba(0, 240, 255, 0.2),
+      inset 0 0 30px rgba(0, 240, 255, 0.05);
+  }
+  
+  /* HUD Styles */
+  .hud-corner {
+    @apply absolute w-5 h-5 border-2 border-cyber-cyan;
+  }
+  
+  .hud-corner--bl {
+    @apply bottom-0 left-0 border-t-0 border-r-0;
+  }
+  
+  .hud-corner--br {
+    @apply bottom-0 right-0 border-t-0 border-l-0;
+  }
+  
+  /* Glow Effects */
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+  }
+  
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(184, 41, 247, 0.5);
+  }
+  
+  /* Ambient Glow */
+  .ambient-glow {
+    @apply absolute w-[600px] h-[600px] rounded-full pointer-events-none;
+    background: radial-gradient(circle, rgba(0,240,255,0.3) 0%, transparent 70%);
+    filter: blur(100px);
+    opacity: 0.3;
+    animation: float 10s ease-in-out infinite;
+  }
+  
+  .ambient-glow--purple {
+    background: radial-gradient(circle, rgba(184,41,247,0.3) 0%, transparent 70%);
+    animation-delay: -5s;
+  }
+  
+  /* Status Indicator */
+  .status-indicator {
+    @apply flex items-center gap-2 font-mono text-xs text-matrix-green;
+  }
+  
+  .status-indicator::before {
+    content: '';
+    @apply w-2 h-2 bg-matrix-green rounded-full;
+    animation: pulse-glow 2s infinite;
+  }
+  
+  /* Data Counter Animation */
+  .data-counter {
+    @apply font-mono text-cyber-cyan;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  /* Glitch Effect */
+  .glitch {
+    animation: glitch 2s infinite;
+  }
+  
+  /* Grid Background */
+  .grid-bg {
+    background-image: 
+      linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar */
+  .scrollbar-cyber::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-cyber::-webkit-scrollbar-track {
+    background: var(--void-black);
+  }
+  
+  .scrollbar-cyber::-webkit-scrollbar-thumb {
+    background: var(--terminal-gray);
+    border-radius: 3px;
+  }
+  
+  .scrollbar-cyber::-webkit-scrollbar-thumb:hover {
+    background: var(--cyber-cyan);
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Perspective for 3D effects */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  
+  /* Backdrop blur fallback */
+  @supports not (backdrop-filter: blur(20px)) {
+    .backdrop-blur-cyber {
+      background: rgba(0, 0, 0, 0.95);
+    }
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
