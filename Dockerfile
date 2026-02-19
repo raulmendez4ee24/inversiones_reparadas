@@ -14,6 +14,8 @@ RUN cd app && npm ci
 FROM node:20-bookworm-slim AS build
 WORKDIR /repo
 ENV NODE_ENV=development
+# Prisma needs DATABASE_URL at generate-time (it does not connect, but validates env presence).
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres?schema=public"
 
 COPY --from=deps /repo/server/node_modules server/node_modules
 COPY --from=deps /repo/app/node_modules app/node_modules
