@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 import { env } from './env.js';
 import { prisma } from './prisma.js';
 import {
@@ -44,6 +45,9 @@ app.use((req, res, next) => {
         if (!req.path.startsWith('/api/')) return;
         if (req.method === 'GET') return;
         if (res.statusCode >= 500) return;
+        const rawUserAgent = req.headers['user-agent'];
+        const userAgent = Array.isArray(rawUserAgent) ? rawUserAgent.join(', ') : (rawUserAgent ?? 'unknown');
+        const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown';
 
         await prisma.auditLog.create({
           data: {
@@ -52,8 +56,8 @@ app.use((req, res, next) => {
             action: `${req.method} ${req.path}`,
             resource: 'api',
             resourceId: null,
-            ip: req.ip,
-            userAgent: req.headers['user-agent'] ?? 'unknown',
+            ip,
+            userAgent,
             severity: res.statusCode >= 400 ? 'medium' : 'low',
             details: { statusCode: res.statusCode },
           },
@@ -653,8 +657,8 @@ async function startTaskRunSimulation(params: { orgId: string; runId: string; ta
       }
 
       if (i === c.step) {
-        const existingLogs = Array.isArray(step.logs) ? (step.logs as unknown[]) : [];
-        const nextLogs = [...existingLogs, `[${now.toISOString()}] ${c.message}`];
+        const existingLogs = Array.isArray(step.logs) ? (step.logs as Prisma.InputJsonArray) : [];
+        const nextLogs: Prisma.InputJsonArray = [...existingLogs, `[${now.toISOString()}] ${c.message}`];
         await prisma.taskStep.update({
           where: { id: step.id },
           data: {
